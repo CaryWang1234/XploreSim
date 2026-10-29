@@ -1,0 +1,22 @@
+#!/bin/sh
+# Push guard for the whole site. Enable it once per clone — this changes local git config, so it is
+# left to you to run:
+#
+#     git config core.hooksPath .githooks
+#
+# What it covers: the hub's static guards, both apps' static guards, both apps' headless tests, and a
+# build of dist/. What it does not cover: the engine layers. The 2026 suite is `npm run validate` in
+# rebuilt/ and the 2025 one is `npm run validate` in reefscape/ (the physics invariants there took
+# thirteen minutes on the machine this was written on), so they stay opt-in per app — run them before
+# a push that touches engine code, and say so in the commit.
+#
+# Skip it in an emergency with `git push --no-verify`, and say so in the commit.
+
+set -e
+cd "$(git rev-parse --show-toplevel)"
+echo "pre-push: hub check + app checks + app tests + build"
+npm run check
+npm run check:apps
+npm test
+npm run build
+echo "pre-push: clear"

@@ -1,11 +1,15 @@
 {
-  "name": "xploresim-hub",
+  "name": "xploresim",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
-  "description": "GitHub Pages hub for the XploreSim FRC match simulators (2026 REBUILT + 2025 REEFSCAPE), bound to xploresim.salmoncat0304.xyz",
+  "description": "One Cloudflare Pages site for both XploreSim FRC match simulators: the 2026 REBUILT console at /rebuilt/ and the 2025 REEFSCAPE console at /reefscape/, bound to xploresim.salmoncat0304.xyz",
   "scripts": {
+    "build": "node scripts/build-site.mjs",
     "check": "node scripts/check.mjs && node scripts/check_style.mjs",
-    "serve": "node --input-type=module -e \"import{createServer}from'node:http';import{readFile}from'node:fs/promises';const T={'.html':'text/html; charset=utf-8','.css':'text/css'};createServer(async(r,s)=>{try{let p=r.url.split('?')[0];if(p==='/'||p==='')p='/index.html';const b=await readFile('.'+p);s.writeHead(200,{'content-type':T[p.endsWith('.html')?'.html':'']||'application/octet-stream'}).end(b);}catch{s.writeHead(404).end('not found');}}).listen(4190,()=>console.log('hub preview: http://127.0.0.1:4190/'))\""
+    "check:apps": "npm --prefix rebuilt run check && npm --prefix reefscape run check",
+    "test": "npm --prefix rebuilt test && npm --prefix reefscape test",
+    "validate": "npm run check && npm run check:apps && npm test && npm run build",
+    "serve": "node scripts/serve.mjs"
   }
 }

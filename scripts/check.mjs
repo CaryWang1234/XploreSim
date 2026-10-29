@@ -1,16 +1,15 @@
 // Static guard for the hub page. No dependencies. The page is a signpost with two entries, so the
-// guard checks three things: the file is intact, the links are real, and nothing has crept back onto
-// it that would need calibrating against the source repos.
-// Run: npm run check        (SKIP_NET=1 npm run check to skip the reachability HEAD)
+// guard checks three things: the file is intact, the links point at season folders that exist, and
+// nothing has crept back onto it that would need calibrating against the source repos.
+// Run: npm run check        (SKIP_NET=1 npm run check to skip the production reachability probe)
 import { readFile } from 'node:fs/promises';
 import { strict as assert } from 'node:assert';
 
 const FILES = ['index.html', '404.html'];
-// The two season sites. These URLs are the product of this page; a typo here is a dead entry.
-const LIVE = [
-  'https://frc-rebuilt-tactics-0ssdesrlvzc.qoder.zone/',
-  'https://frc-reefscape-tactics-0ssdesrlvzc.qoder.zone/',
-];
+// The two season consoles, built into this same site by scripts/build-site.mjs. A typo here is a
+// dead entry, and so is a season whose web/ folder the build would copy nowhere.
+const LIVE = ['/rebuilt/', '/reefscape/'];
+const SEASON_WEB = ['rebuilt/web/index.html', 'reefscape/web/index.html'];
 
 let failed = 0;
 async function check(name, fn) {
@@ -77,14 +76,20 @@ await check('index.html: the page stays a signpost', () => {
   }
 });
 
-await check('CNAME points at the domain this page is bound to', async () => {
-  const cname = await readFile(new URL('../CNAME', import.meta.url), 'utf8');
-  assert.equal(cname.trim(), 'xploresim.salmoncat0304.xyz');
-  assert.ok(src['index.html'].includes(cname.trim()), 'the page does not name its own domain');
+await check('each season console still has a source page to build from', async () => {
+  for (const f of SEASON_WEB) {
+    const html = await readFile(new URL(`../${f}`, import.meta.url), 'utf8');
+    assert.match(html, /<script type="module" src="(\.\/)?js\/ui\.js">/, `${f} lost its module entry`);
+  }
+});
+
+await check('the page names the domain it is served from', () => {
+  assert.ok(src['index.html'].includes('xploresim.salmoncat0304.xyz'), 'the page does not name its own domain');
 });
 
 if (!process.env.SKIP_NET) {
-  for (const url of LIVE) {
+  for (const path of LIVE) {
+    const url = `https://xploresim.salmoncat0304.xyz${path}`;
     await check(`live: ${url}`, async () => {
       const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
       assert.equal(res.status, 200, `HTTP ${res.status}`);
