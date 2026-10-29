@@ -1,0 +1,33 @@
+{
+  "name": "xplore-sim",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "REBUILT (2026 FRC) match simulator and tactical planner. Rules transcribed from the 2026 Game Manual TU21.",
+  "scripts": {
+    "test": "node --test scripts/runtime.test.mjs scripts/rp.test.mjs",
+    "validate": "npm run check && npm test && npm run verify && npm run rp && npm run golden",
+    "serve": "node scripts/serve.mjs",
+    "check": "node scripts/check_web.mjs",
+    "verify": "node scripts/verify.mjs",
+    "rp": "node scripts/rp.mjs",
+    "golden": "node scripts/golden.mjs",
+    "bench": "node scripts/bench.mjs",
+    "probe": "node scripts/probe.mjs",
+    "train": "node scripts/train.mjs",
+    "night": "node scripts/night.mjs",
+    "ab": "node scripts/ab.mjs",
+    "mirror": "node scripts/mirror.mjs",
+    "seat": "node scripts/seat.mjs",
+    "dark": "node scripts/dark.mjs",
+    "gap": "node scripts/gap.mjs",
+    "range": "node scripts/range.mjs",
+    "lever": "node scripts/lever.mjs",
+    "knob": "node scripts/knob.mjs",
+    "team": "node scripts/team.mjs",
+    "cap": "node scripts/cap.mjs",
+    "defcal": "node scripts/defcal.mjs",
+    "cards": "node scripts/cards.mjs",
+    "autowin": "node scripts/autowin.mjs"
+  }
+}
