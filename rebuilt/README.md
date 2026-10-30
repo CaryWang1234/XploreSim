@@ -72,6 +72,10 @@ scripts/            the measurements above, plus serve.mjs and check_web.mjs
 `reefscape/` is a separate repository with its own history and checks; it is excluded from this
 repository by `.gitignore`. Changes to the two simulators should be validated independently.
 
+The engineering notes that used to sit commented out inside `web/index.html` are in
+[`docs/UI_ESSAYS.md`](docs/UI_ESSAYS.md), in page order: the measurements, the named scripts and the
+builds they were taken on. They are not rendered by the page.
+
 ## Runtime and replay maintenance
 
 The UI captures the input roster, weights and run context before sending a simulation to the worker.

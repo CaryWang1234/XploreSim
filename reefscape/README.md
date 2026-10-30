@@ -29,6 +29,9 @@ npm run strength   # the planner against the shipped baseline and the best fixed
 npm run record     # re-run the measurement scripts into .tmp/ so the audit can check values, not citations
 ```
 
+The engineering notes that used to sit commented out inside `web/index.html` are in
+[`docs/UI_ESSAYS.md`](docs/UI_ESSAYS.md), in page order. They are not rendered by the page.
+
 ## What is modelled
 
 `web/js/` is five modules:

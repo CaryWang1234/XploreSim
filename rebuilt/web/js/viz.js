@@ -6,16 +6,16 @@ import { GEO } from './engine.js';
 import { INTAKE_SIDE_OF } from './model.js';
 
 const COLORS = {
-  red: '#e0413f',
-  blue: '#2f7de1',
-  carpet: '#1b2330',
-  carpetAlt: '#212b3a',
-  structure: '#39465c',
-  structureLight: '#4b5b76',
-  fuel: '#f0d264',
-  text: '#dfe7f3',
-  dim: '#8ea0bb',
-  offField: '#0d1218',
+  red: '#e14b4f',
+  blue: '#4b8ade',
+  carpet: '#181c20',
+  carpetAlt: '#14171b',
+  structure: '#2e343b',
+  structureLight: '#424a53',
+  fuel: '#e3c46e',
+  text: '#ecebe6',
+  dim: '#9aa0a6',
+  offField: '#0a0d11',
 };
 
 // The OUTPOST sits outside the ALLIANCE WALL, and the HUMAN PLAYER works from it, so the view is
@@ -521,20 +521,20 @@ export class FieldView {
     void meta;
   }
 
+  // Short labels on the page; the sentence that explains each mark rides along as `d` and becomes the
+  // chip's title, so the legend stays one line instead of a paragraph under the FIELD.
   legend() {
     return [
-      { c: COLORS.red, t: 'Red alliance ROBOT' },
-      { c: COLORS.blue, t: 'Blue alliance ROBOT' },
-      { c: COLORS.fuel, t: 'FUEL (§5.10.1)' },
-      { c: COLORS.structureLight, t: 'Structures: HUB / BUMP / TRENCH / DEPOT / TOWER' },
-      { c: COLORS.dim, t: 'HUMAN PLAYER in each OUTPOST, behind the ALLIANCE WALL and out of every ROBOT\'s reach (G421). The label above it is the play, Th = throw / Dp = dump, and the number below is the FUEL it still has to throw (CHUTE + CORRAL + hand)' },
-      { c: COLORS.fuel, t: 'CHUTE DOOR: grey and shut while the HP throws, yellow and swung open to dump the CHUTE onto the FIELD (§5.9.2, G425-A)' },
-      { c: COLORS.structureLight, t: 'CORRAL: the slot at the base of the OUTPOST wall where a full ROBOT pushes FUEL for the HP to throw (§5.9.2, G425-B, one layer of 36 FUEL)' },
-      { c: COLORS.text, t: 'Letters are the intent (Co sweep / St hold / Sc score / Pa pass / Pu push / Fd deliver / Df defend / Cl climb)' },
-      { c: COLORS.fuel, t: 'A + on the intent letter (Sc+) means the roller is sweeping while it shoots or passes' },
-      { c: '#fff6cf', t: 'The pale edge on a square ROBOT is a DUMPER\'s shooting face: only that side can score, so the car has to turn it to the HUB. A TURRET has no face — the barrel drawn over it tracks the HUB while the body drives wherever it likes' },
-      { c: '#7fe3c0', t: 'The teal bar is the intake mouth, on whichever face the ROBOT card says. The car sweeps a pile by leading with that bar, so a rear intake backs into it and a side intake strafes — a tank drive cannot strafe, and then it only picks up what the side brushes past' },
-      { c: COLORS.fuel, t: 'A FUEL stream in flight is one line per shooter through the balls it has in the air, oldest first. Each ball flies at the point it comes down on, so a hopper emptied at the HUB face fans around the opening instead of drawing one line into the middle' },
+      { c: COLORS.red, t: 'Red ROBOT', d: 'Red alliance ROBOT.' },
+      { c: COLORS.blue, t: 'Blue ROBOT', d: 'Blue alliance ROBOT.' },
+      { c: COLORS.fuel, t: 'FUEL', d: 'FUEL and its flight path (§5.10.1): one line per shooter through the balls it has in the air, oldest first. Each ball flies at the point it comes down on, so a hopper emptied at the HUB face fans around the opening.' },
+      { c: COLORS.structureLight, t: 'Structures', d: 'HUB / BUMP / TRENCH / DEPOT / TOWER.' },
+      { c: COLORS.dim, t: 'HUMAN PLAYER', d: 'One per OUTPOST, behind the ALLIANCE WALL and out of every ROBOT\'s reach (G421). The label above it is the play — Th = throw, Dp = dump — and the number below is the FUEL it still has to throw (CHUTE + CORRAL + hand).' },
+      { c: COLORS.fuel, t: 'CHUTE DOOR', d: 'Grey and shut while the HP throws; yellow and swung open to dump the CHUTE onto the FIELD (§5.9.2, G425-A).' },
+      { c: COLORS.structureLight, t: 'CORRAL', d: 'The slot at the base of the OUTPOST wall where a full ROBOT pushes FUEL for the HP to throw (§5.9.2, G425-B, one layer of 36 FUEL).' },
+      { c: COLORS.text, t: 'Intent letters', d: 'Co sweep / St hold / Sc score / Pa pass / Pu push / Fd deliver / Df defend / Cl climb. A + (Sc+) means the roller is sweeping while it shoots or passes.' },
+      { c: '#fff6cf', t: 'Dumper face', d: 'The pale edge on a square ROBOT is a DUMPER\'s shooting face: only that side can score, so the car has to turn it to the HUB. A TURRET has no face — the barrel drawn over it tracks the HUB while the body drives wherever it likes.' },
+      { c: '#7fe3c0', t: 'Intake mouth', d: 'The teal bar is the intake mouth, on whichever face the ROBOT card says. The car sweeps a pile by leading with that bar, so a rear intake backs into it and a side intake strafes — a tank drive cannot strafe, and then it only picks up what the side brushes past.' },
     ];
   }
 }

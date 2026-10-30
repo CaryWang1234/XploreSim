@@ -5,24 +5,24 @@ import { layout, branchSlots, coralMarks, reefAlgae } from './model.js';
 import { FIELD, GEO, ROBOT_LIMITS, PIECES, NET_LANES, NET_CAPACITY } from './rules.js';
 
 const INK = {
-  carpet: '#10192a',
-  carpetAlt: '#0d1523',
-  guardrail: '#33455e',
+  carpet: '#141a20',
+  carpetAlt: '#101418',
+  guardrail: '#3a424b',
   zone: 'rgba(142,160,187,0.34)',
-  blue: '#2f7de1',
-  red: '#e0413f',
-  blueSoft: 'rgba(47,125,225,0.16)',
-  redSoft: 'rgba(224,65,63,0.16)',
+  blue: '#4b8ade',
+  red: '#e14b4f',
+  blueSoft: 'rgba(75,138,222,0.16)',
+  redSoft: 'rgba(225,75,79,0.16)',
   // §5.7.1: a CORAL is a length of white PVC pipe, 4 in in diameter by 11 in long. §5.7.2: an ALGAE is
   // an inflated ring 16 in across — four times the CORAL's diameter, which is the proportion the earlier
   // amber dots and same-sized markers hid.
   coral: '#f1eee4',
   coralEdge: 'rgba(21,29,41,0.75)',
-  algae: '#4ec08a',
-  busy: '#6ad0ff',
-  truss: '#2b3646',
-  text: '#e6edf7',
-  dim: '#8ea0bb',
+  algae: '#5aa878',
+  busy: '#5ccfd0',
+  truss: '#262c33',
+  text: '#ecebe6',
+  dim: '#9aa0a6',
 };
 
 const REEF_R = GEO.reef.hexAcrossFlatsIn / 2 / Math.cos(Math.PI / 6); // hexagon vertex radius

@@ -180,13 +180,28 @@ function presetIndexOf(prof) {
   );
 }
 
+// Every edit re-renders the rail, so two pieces of UI state have to survive it by hand: which cards
+// have "Machine details" open, and which input the reader was typing in. Without them a hidden field
+// closes the moment it is edited, and a number typed one key at a time keeps only the first key.
+const OPEN_CARDS = new Set();
+
 function renderRoster(side) {
   const host = $(`roster-${side}`);
+  const active = document.activeElement;
+  // A number input may refuse `selectionStart`; the caret is a nicety, not a requirement.
+  let caret = [null, null];
+  if (active && host.contains(active) && active.dataset?.k) {
+    try { caret = [active.selectionStart, active.selectionEnd]; } catch { caret = [null, null]; }
+  }
+  const typing = active && host.contains(active) && active.dataset?.k
+    ? { slot: Number(active.closest('.robot-card')?.dataset.slot), key: active.dataset.k, start: caret[0], end: caret[1] }
+    : null;
   host.innerHTML = '';
   state.rosters[side].forEach((prof, slot) => {
     const d = derived(prof);
     const card = document.createElement('div');
     card.className = prof.plays === false ? 'robot-card bench' : 'robot-card';
+    card.dataset.slot = String(slot);
     // DRIVER STATIONS close up around a benched ROBOT, so the number a card shows is its place among
     // the ROBOTs that are actually on the field, not its index in this list.
     const station = state.rosters[side].slice(0, slot + 1).filter((x) => x.plays !== false).length;
@@ -200,10 +215,16 @@ function renderRoster(side) {
     const crossConflict =
       (prof.canTrench === true && !d.fitsTrench) || (prof.canTrench === false && d.fitsTrench);
     card.innerHTML = `
-      <div class="robot-title"><span class="dot ${side}"></span>${side === 'red' ? 'RED' : 'BLUE'} ${slot + 1} · DRIVER STATION ${prof.plays === false ? '—' : station}
-        <em>${prof.plays === false ? 'BENCHED — NOT ON THE FIELD' : crossLabel}</em></div>
-      <div class="robot-row">
-        <label>Preset
+      <div class="rc-head">
+        <span class="rc-id"><i class="dot ${side}"></i>${side === 'red' ? 'RED' : 'BLUE'} ${slot + 1}<span class="rc-station">DS ${prof.plays === false ? '—' : station}</span></span>
+        <span class="rc-cross">${prof.plays === false ? 'BENCHED' : crossLabel}</span>
+        <label class="rc-plays" title="Turn this ROBOT off and it is not fielded at all: no start position, no preload, nothing to collide with, and the DRIVER STATIONS close up around it. Field one ROBOT on each side for a 1v1. The last ROBOT on the field cannot be turned off.">
+          <input data-k="plays" type="checkbox" ${prof.plays === false ? '' : 'checked'} />
+          <span>on field</span>
+        </label>
+      </div>
+      <div class="rc-fields">
+        <label class="wide">Preset
           <select data-k="preset">
             ${SAMPLES.map((s, i) => `<option value="${i}" ${i === presetIdx ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}
             <option value="-1" ${presetIdx < 0 ? 'selected' : ''}>Custom</option>
@@ -214,10 +235,6 @@ function renderRoster(side) {
         </label>
         <label>Starting position
           <select data-k="start">${START_OPTIONS.map((o) => `<option value="${o.v}" title="${esc(o.hint)}" ${o.v === (prof.start || 'auto') ? 'selected' : ''}>${esc(o.t)}</option>`).join('')}</select>
-        </label>
-        <label class="check" title="Turn this ROBOT off and it is not fielded at all: no start position, no preload, nothing to collide with, and the DRIVER STATIONS close up around it. Field one ROBOT on each side for a 1v1. The last ROBOT on the field cannot be turned off.">
-          <input data-k="plays" type="checkbox" ${prof.plays === false ? '' : 'checked'} />
-          On the field
         </label>
         <label>Shooter
           <select data-k="mechanism">
@@ -230,46 +247,59 @@ function renderRoster(side) {
         <label title="Which face of the square carries the full-width intake slot. Back is the default because a Front slot and a front-mounted Dumper shooter share the same bumper. The ROBOT sweeps a pile by leading with the mouth, so a rear intake backs into it at the chassis's reverse speed and a side intake has to strafe — which a tank drive cannot do, and then it only picks up what the side brushes past.">Intake
           <select data-k="intakeSide">${INTAKE_SIDES.map((s) => `<option value="${s.key}" title="${esc(s.hint)}" ${s.key === (prof.intakeSide || 'back') ? 'selected' : ''}>${esc(s.label)}</option>`).join('')}</select>
         </label>
-        <label title="How fast the whole car rotates, in degrees per second. A square ROBOT has to turn its shooting face onto the HUB, so this is a cycle-time number, not a cosmetic one. Changing the chassis resets it to that chassis's reference value.">Turn rate deg/s<input data-k="turnRateDegPerSec" type="number" step="10" min="30" max="1200" value="${prof.turnRateDegPerSec}" /></label>
-        <label>Drive speed in/s<input data-k="driveSpeedIps" type="number" step="2" value="${prof.driveSpeedIps}" /></label>
-        <label>Intake FUEL/s<input data-k="intakeRate" type="number" step="0.1" value="${prof.intakeRate}" /></label>
-        <label>Capacity FUEL<input data-k="capacity" type="number" step="1" value="${prof.capacity}" /></label>
-        <label title="What this machine's preprogrammed AUTO puts in the HUB, as you have measured it. Leave it blank and the engine simulates those 20 seconds: the machine drives, shoots at its modelled accuracy and takes what its mouth finds. Type a number and that load is what it starts the MATCH holding — only the first 8 of it could legally be preloaded (§6.3.4-C), the rest stands in for a pickup the engine is not asked to simulate — its AUTO shots are not re-rolled against a modelled accuracy because the number you typed IS the measurement, and the intake mouth stays shut for the 20 seconds so the declaration is the AUTO rather than a floor the emergent cycle can top. Whatever is still in the hopper at the whistle carries on into TELEOP like anything else. npm run probe prints what the simulated AUTO gives the shipped cards.">AUTO FUEL scored<input data-k="autoRoutine" type="number" step="1" min="0" max="120" placeholder="simulated" value="${prof.auto?.routineFuel ?? ''}" /></label>
-        <label>Shoot rate FUEL/s<input data-k="shootRate" type="number" step="0.1" value="${prof.shootRate}" /></label>
-        <label>Accuracy<input data-k="shootAccuracy" type="number" step="0.01" min="0.1" max="0.99" value="${prof.shootAccuracy}" /></label>
-        <label title="How far a PASS actually carries. The shooter throws with one fixed punch, so a partner further than this is not reached: the FUEL comes down short, on the same line, wherever it lands. The front edges of the two ALLIANCE ZONES are 334 in apart and their middle lines 493 in, so throwing from inside the opponent's zone back to a partner in your own needs about 400-500 in. Nothing to do with a shot at the HUB, which has its own reference distance and accuracy falloff.">Pass range in<input data-k="passRangeIn" type="number" step="10" min="24" max="660" value="${prof.passRangeIn}" /></label>
-        <label>Height in<input data-k="heightIn" type="number" step="0.5" min="12" max="30" value="${prof.heightIn}" /></label>
         <label>Crossing
           <select data-k="cross">${CROSS_OPTIONS.map((o) => `<option value="${o.v}" ${o.v === cross ? 'selected' : ''}>${o.t}</option>`).join('')}</select>
         </label>
-        <label>Passing
-          <select data-k="passMode">${PASS_OPTIONS.map((o) => `<option value="${o.v}" ${o.v === (prof.passMode || 'auto') ? 'selected' : ''}>${o.t}</option>`).join('')}</select>
-        </label>
-        <label>Bulldozing
-          <select data-k="pushMode">${PUSH_OPTIONS.map((o) => `<option value="${o.v}" ${o.v === (prof.pushMode || 'passive') ? 'selected' : ''}>${o.t}</option>`).join('')}</select>
-        </label>
-        <label>Outpost
-          <select data-k="feedMode">${FEED_OPTIONS.map((o) => `<option value="${o.v}" ${o.v === (prof.feedMode || 'auto') ? 'selected' : ''}>${o.t}</option>`).join('')}</select>
-        </label>
-        <label>Max climb
-          <select data-k="climbMax">${CLIMB_OPTIONS.map((o) => `<option value="${o.v}" ${o.v === climbLevel ? 'selected' : ''}>${o.t}</option>`).join('')}</select>
-        </label>
-        <label>Climb time s
-          <input data-k="climbTime" type="number" step="0.5" min="0" max="30" value="${prof.climb.timeSec}" ${climbLevel === 0 ? 'disabled' : ''} />
-        </label>
       </div>
-      ${
-        preset && preset.ref
-          ? `<p class="prov">Reference robot · ${esc(preset.ref)}<span>Source: ${esc(preset.source || 'not given')}</span><span>Most numbers are estimates, not measurements, and do not describe what this team actually did.</span></p>`
-          : presetIdx < 0
-            ? '<p class="prov">Custom specs<span>Fill in your own scouting data.</span></p>'
-            : ''
-      }
+      <div class="rc-nums">
+        <label>Drive in/s<input data-k="driveSpeedIps" type="number" step="2" value="${prof.driveSpeedIps}" /></label>
+        <label>Intake FUEL/s<input data-k="intakeRate" type="number" step="0.1" value="${prof.intakeRate}" /></label>
+        <label>Capacity<input data-k="capacity" type="number" step="1" value="${prof.capacity}" /></label>
+        <label title="What this machine's preprogrammed AUTO puts in the HUB, as you have measured it. Leave it blank and the engine simulates those 20 seconds: the machine drives, shoots at its modelled accuracy and takes what its mouth finds. Type a number and that load is what it starts the MATCH holding — only the first 8 of it could legally be preloaded (§6.3.4-C), the rest stands in for a pickup the engine is not asked to simulate — its AUTO shots are not re-rolled against a modelled accuracy because the number you typed IS the measurement, and the intake mouth stays shut for the 20 seconds so the declaration is the AUTO rather than a floor the emergent cycle can top. Whatever is still in the hopper at the whistle carries on into TELEOP like anything else. npm run probe prints what the simulated AUTO gives the shipped cards.">AUTO FUEL<input data-k="autoRoutine" type="number" step="1" min="0" max="120" placeholder="sim" value="${prof.auto?.routineFuel ?? ''}" /></label>
+        <label>Shoot FUEL/s<input data-k="shootRate" type="number" step="0.1" value="${prof.shootRate}" /></label>
+        <label>Accuracy<input data-k="shootAccuracy" type="number" step="0.01" min="0.1" max="0.99" value="${prof.shootAccuracy}" /></label>
+      </div>
+      <details class="rc-more">
+        <summary>Machine details</summary>
+        <div class="rc-fields">
+          <label title="How fast the whole car rotates, in degrees per second. A square ROBOT has to turn its shooting face onto the HUB, so this is a cycle-time number, not a cosmetic one. Changing the chassis resets it to that chassis's reference value.">Turn rate deg/s<input data-k="turnRateDegPerSec" type="number" step="10" min="30" max="1200" value="${prof.turnRateDegPerSec}" /></label>
+          <label title="How far a PASS actually carries. The shooter throws with one fixed punch, so a partner further than this is not reached: the FUEL comes down short, on the same line, wherever it lands. The front edges of the two ALLIANCE ZONES are 334 in apart and their middle lines 493 in, so throwing from inside the opponent's zone back to a partner in your own needs about 400-500 in. Nothing to do with a shot at the HUB, which has its own reference distance and accuracy falloff.">Pass range in<input data-k="passRangeIn" type="number" step="10" min="24" max="660" value="${prof.passRangeIn}" /></label>
+          <label>Height in<input data-k="heightIn" type="number" step="0.5" min="12" max="30" value="${prof.heightIn}" /></label>
+          <label>Passing
+            <select data-k="passMode">${PASS_OPTIONS.map((o) => `<option value="${o.v}" ${o.v === (prof.passMode || 'auto') ? 'selected' : ''}>${o.t}</option>`).join('')}</select>
+          </label>
+          <label>Bulldozing
+            <select data-k="pushMode">${PUSH_OPTIONS.map((o) => `<option value="${o.v}" ${o.v === (prof.pushMode || 'passive') ? 'selected' : ''}>${o.t}</option>`).join('')}</select>
+          </label>
+          <label>Outpost
+            <select data-k="feedMode">${FEED_OPTIONS.map((o) => `<option value="${o.v}" ${o.v === (prof.feedMode || 'auto') ? 'selected' : ''}>${o.t}</option>`).join('')}</select>
+          </label>
+          <label>Max climb
+            <select data-k="climbMax">${CLIMB_OPTIONS.map((o) => `<option value="${o.v}" ${o.v === climbLevel ? 'selected' : ''}>${o.t}</option>`).join('')}</select>
+          </label>
+          <label>Climb time s
+            <input data-k="climbTime" type="number" step="0.5" min="0" max="30" value="${prof.climb.timeSec}" ${climbLevel === 0 ? 'disabled' : ''} />
+          </label>
+        </div>
+        ${
+          preset && preset.ref
+            ? `<p class="prov">Reference robot · ${esc(preset.ref)}<span>Source: ${esc(preset.source || 'not given')}</span><span>Most numbers are estimates, not measurements, and do not describe what this team actually did.</span></p>`
+            : presetIdx < 0
+              ? '<p class="prov">Custom specs<span>Fill in your own scouting data.</span></p>'
+              : ''
+        }
+      </details>
       ${
         crossConflict
-          ? `<p class="prov">Crossing disagrees with height<span>Height ${prof.heightIn}in ${d.fitsTrench ? 'fits the TRENCH' : 'cannot fit the TRENCH (> 22.25in)'}; running your setting anyway.</span></p>`
+          ? `<p class="prov warn">Crossing disagrees with height<span>Height ${prof.heightIn}in ${d.fitsTrench ? 'fits the TRENCH' : 'cannot fit the TRENCH (> 22.25in)'}; running your setting anyway.</span></p>`
           : ''
       }`;
+    const more = card.querySelector('.rc-more');
+    more.open = OPEN_CARDS.has(`${side}:${slot}`);
+    more.addEventListener('toggle', () => {
+      if (more.open) OPEN_CARDS.add(`${side}:${slot}`);
+      else OPEN_CARDS.delete(`${side}:${slot}`);
+    });
     card.addEventListener('input', (e) => {
       const k = e.target.dataset.k;
       if (!k) return;
@@ -337,6 +367,15 @@ function renderRoster(side) {
     });
     host.appendChild(card);
   });
+  if (typing) {
+    const card = host.querySelector(`.robot-card[data-slot="${typing.slot}"]`);
+    const el = card?.querySelector(`[data-k="${typing.key}"]`);
+    // A select or a checkbox has already committed its change; only a text box needs the caret back.
+    if (el && el.tagName !== 'SELECT' && el.type !== 'checkbox') {
+      el.focus();
+      try { el.setSelectionRange(typing.start, typing.end); } catch { /* number inputs keep no caret */ }
+    }
+  }
 }
 
 // The six ROBOT teams, shown next to their score the way the audience display names the ALLIANCE.
@@ -379,7 +418,7 @@ function replayRosters() {
 
 function renderLegend() {
   const items = view.legend();
-  const html = items.map((l) => `<span><i style="background:${l.c}"></i>${l.t}</span>`).join('');
+  const html = items.map((l) => `<span title="${esc(l.d || l.t)}"><i style="background:${l.c}"></i>${esc(l.t)}</span>`).join('');
   // One chip per ROBOT, and the chips are buttons: with six team plates on a 650 in FIELD a replay
   // gets busy, so clicking a chip focuses that car and dims the rest. Clicking it again releases it.
   const roster = [];
@@ -842,8 +881,8 @@ function opponentPick() {
 // ---------------------------------------------------------------------------------------------
 // Chart helpers (plain canvas, no libraries)
 // ---------------------------------------------------------------------------------------------
-const AXIS = '#6f809b';
-const GRID = '#1e2836';
+const AXIS = '#7a828b';
+const GRID = '#20242a';
 
 function prepCanvas(canvas, fallbackW = 320, fallbackH = 120) {
   const dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -864,7 +903,7 @@ function drawYAxis(ctx, w, h, padL, padB, padT, lo, hi, fmt) {
   ctx.textBaseline = 'middle';
   for (const f of [0, 0.5, 1]) {
     const y = h - padB - f * (h - padB - padT);
-    ctx.strokeStyle = f === 0 ? '#33415a' : GRID;
+    ctx.strokeStyle = f === 0 ? '#3a424b' : GRID;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(padL, y + 0.5);
@@ -875,7 +914,7 @@ function drawYAxis(ctx, w, h, padL, padB, padT, lo, hi, fmt) {
   }
 }
 
-function barChart(canvas, values, labels, color = '#2f7de1') {
+function barChart(canvas, values, labels, color = '#4b8ade') {
   const { ctx, w, h } = prepCanvas(canvas);
   const padL = 26;
   const padB = 15;
@@ -898,7 +937,7 @@ function barChart(canvas, values, labels, color = '#2f7de1') {
     ctx.fill();
     ctx.globalAlpha = 1;
     if (v > 0 && bw > 26) {
-      ctx.fillStyle = '#cdd8e8';
+      ctx.fillStyle = '#c9c6bf';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'alphabetic';
       ctx.fillText(String(v), x + barW / 2, Math.max(padT, y - 4));
@@ -916,7 +955,7 @@ function barChart(canvas, values, labels, color = '#2f7de1') {
   }
 }
 
-function lineChart(canvas, points, color = '#ffd94a') {
+function lineChart(canvas, points, color = '#c9a45c') {
   const { ctx, w, h } = prepCanvas(canvas);
   if (!points || !points.length) return;
   const padL = 30;
@@ -952,7 +991,7 @@ function lineChart(canvas, points, color = '#ffd94a') {
   ctx.arc(X(li), Y(points[li]), 3, 0, Math.PI * 2);
   ctx.fillStyle = color;
   ctx.fill();
-  ctx.fillStyle = '#cdd8e8';
+  ctx.fillStyle = '#c9c6bf';
   ctx.font = '9px ui-monospace, monospace';
   ctx.textAlign = 'right';
   ctx.textBaseline = 'alphabetic';
@@ -1007,12 +1046,12 @@ function renderResult(res, ctx = {}) {
     .join('');
 
   const labels = r.scoreHist.map((_, i) => `${i * 50}`);
-  barChart($('chart-score'), r.scoreHist, labels, '#2f7de1');
+  barChart($('chart-score'), r.scoreHist, labels, '#4b8ade');
 
   // The margin histogram was collected from the first build and never drawn, which left "we win 36% of
   // the time" with no answer to "by how much".
   const mLabels = r.deltaHist.map((_, i) => `${i * 50 - 250}`);
-  barChart($('chart-margin'), r.deltaHist, mLabels, '#7ad0a6');
+  barChart($('chart-margin'), r.deltaHist, mLabels, '#5aa878');
 
   const rpRows = [
     ['ENERGIZED RP', r.rpProb.energized, `FUEL into the active HUB ≥ ${r.thresholds.energized}`],
@@ -1606,11 +1645,11 @@ function renderFlow(r) {
 // the same number; nothing here reads a model or a stored expectation.
 // ---------------------------------------------------------------------------------------------
 const MODE_COLOR = {
-  COLLECT: '#3f8ecb', STOCKPILE: '#6c7f9c', SCORE: '#f0b429', PASS: '#8fd6bd', PUSH: '#4fb0a5',
-  DEFEND: '#c86a5a', CLIMB: '#a56fd6', FEED: '#d6a55f', IDLE: '#222d3c',
+  COLLECT: '#4b8ade', STOCKPILE: '#6b7178', SCORE: '#c9a45c', PASS: '#5aa878', PUSH: '#4f9c94',
+  DEFEND: '#bd6a5c', CLIMB: '#9a7fc0', FEED: '#a97f4e', IDLE: '#20242a',
 };
-const SOURCE_COLOR = { neutral: '#7f93b0', zone: '#4faf88', feed: '#f0b429' };
-const SIDE_COLOR = { red: '#e0596a', blue: '#4f8fe0' };
+const SOURCE_COLOR = { neutral: '#6b7178', zone: '#5aa878', feed: '#c9a45c' };
+const SIDE_COLOR = { red: '#e14b4f', blue: '#4b8ade' };
 
 function timeX(t, span, padL, padR, w) {
   return padL + (span > 0 ? t / span : 0) * (w - padL - padR);
@@ -1673,7 +1712,7 @@ function linesChart(canvas, series, opts) {
 // The scrubber position, drawn last so it is always on top of the line it is pointing at.
 function trendMarker(ctx, w, h, padL, padB, padT, span, markerT) {
   const x = timeX(markerT, span, padL, 8, w);
-  ctx.strokeStyle = '#e8eef7';
+  ctx.strokeStyle = '#ecebe6';
   ctx.lineWidth = 1;
   ctx.globalAlpha = 0.65;
   ctx.beginPath();
@@ -1736,7 +1775,7 @@ function sourceChart(canvas, rows, max) {
       ctx.fillRect(x, y + 1, Math.max(0.6, bw), rowH - 3);
       x += bw;
     }
-    ctx.fillStyle = '#cdd8e8';
+    ctx.fillStyle = '#c9c6bf';
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
     ctx.fillText(String(r.taken), padL + r.taken * scale + 14, y + rowH / 2);
@@ -1960,7 +1999,7 @@ function renderBench(data) {
 
 function renderTrain(out) {
   state.trainHistory = out.history || null;
-  lineChart($('chart-train'), (out.history || []).map((h) => h.fit), '#ffd94a');
+  lineChart($('chart-train'), (out.history || []).map((h) => h.fit), '#c9a45c');
   const changed = Object.keys(out.weights).filter((k) => Math.abs(out.weights[k] - DEFAULT_WEIGHTS[k]) > 1e-6);
   $('weight-table').innerHTML = `<thead><tr><th>Weight</th><th class="mono">Default</th><th class="mono">Trained</th></tr></thead><tbody>${
     (changed.length ? changed : Object.keys(DEFAULT_WEIGHTS).slice(0, 12))
@@ -2762,7 +2801,7 @@ function boot() {
 }
 
 function redrawInsightCharts() {
-  if (state.result) barChart($('chart-score'), state.result.scoreHist, state.result.scoreHist.map((_, i) => `${i * 50}`), '#2f7de1');
+  if (state.result) barChart($('chart-score'), state.result.scoreHist, state.result.scoreHist.map((_, i) => `${i * 50}`), '#4b8ade');
   if (state.trainHistory) lineChart($('chart-train'), state.trainHistory.map((h) => h.fit));
 }
 

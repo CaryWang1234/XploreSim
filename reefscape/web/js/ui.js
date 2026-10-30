@@ -77,10 +77,15 @@ const SPEC_FIELDS = [
   // card with no shipped value: every profile runs 0 and the goal is the HUMAN PLAYER's.
   { key: 'netScoreSec', label: 'NET lift s', min: 0, max: 6, step: 0.1, title: 'Seconds to lift an ALGAE over the NET border and release it (§5.4.2: the mesh hangs 6 ft 4 in above the carpet). The shipped profiles carry their own L4 placement time plus 0.5 s — a machine that lands a CORAL at 72 in clears the 76 in border, and a 16 in ring is the wider piece. 0 is the ablation. Above 0 the ROBOT drives under its own BARGE and keeps the 4 rather than processing for 6 minus the 4 the opponent\'s HUMAN PLAYER will throw back; in a mirror that trade costs both sides about 27 points a MATCH, because a lifted ring never feeds the other side\'s net.' },
   { key: 'climbSec', label: 'climb s', min: 0.5, max: 10, step: 0.1 },
-  { key: 'climbSuccess', label: 'climb success %', min: 30, max: 100, step: 1, pct: true, title: 'Chance that a CAGE hold sticks. §6.5.2 gives CAGE points only to a ROBOT contacting one of its ALLIANCE\'s CAGES and not touching the carpet, and PARK only to one whose BUMPERS are in the BARGE ZONE with no CAGE, so Table 6-2 prices the hold at 12 or 6 and the miss at 2. No source prints a rate for it — `npm run measure` sweeps what one costs. A miss leaves the ROBOT on the carpet beside the CAGE it claimed, and it tries again while the clock runs; if the whistle goes first it reads as a PARK. Unchecking "Climb can miss" is the engine where the roll is discarded and a climb cannot fail.' },
+  { key: 'climbSuccess', label: 'climb ok %', min: 30, max: 100, step: 1, pct: true, title: 'Chance that a CAGE hold sticks. §6.5.2 gives CAGE points only to a ROBOT contacting one of its ALLIANCE\'s CAGES and not touching the carpet, and PARK only to one whose BUMPERS are in the BARGE ZONE with no CAGE, so Table 6-2 prices the hold at 12 or 6 and the miss at 2. No source prints a rate for it — `npm run measure` sweeps what one costs. A miss leaves the ROBOT on the carpet beside the CAGE it claimed, and it tries again while the clock runs; if the whistle goes first it reads as a PARK. Unchecking "Climb can miss" is the engine where the roll is discarded and a climb cannot fail.' },
   { key: 'turnRateDegS', label: 'turn deg/s', min: 60, max: 900, step: 20 },
   { key: 'reliability', label: 'reliability %', min: 60, max: 100, step: 1, pct: true },
 ];
+
+// Which SPEC_FIELDS the card shows open. The rest go behind "Full specs".
+const CORE_SPECS = new Set([
+  'driveSpeedIps', 'autoCycles', 'pickSec', 'placeL4', 'dropL4', 'climbSec', 'climbSuccess', 'reliability',
+]);
 
 // The drivetrain is a choice, not a per-number edit: it sets the sideways and reverse fractions, how
 // much of the turn rate survives at full speed, and how long the spin takes to ramp up.
@@ -187,6 +192,10 @@ const capText = (txt) => {
   return s;
 };
 
+// "Full specs" is open or closed per card; buildSetup rebuilds the rail (a preset, the mirror switch,
+// an import), so the state has to live outside the DOM.
+const OPEN_SPECS = new Set();
+
 function rosterCard(side, idx) {
   // trioFor, not state.trios: with the mirror ticked what Red actually drives is Blue's trio, and the cards
   // have to show the machines that are on the carpet rather than the ones parked in the other editor.
@@ -224,6 +233,7 @@ function rosterCard(side, idx) {
     const i = presetIndexOf(p);
     ps.value = i >= 0 ? ROBOT_PRESETS[i].key : '-1';
     note.textContent = i >= 0 ? ROBOT_PRESETS[i].note : 'edited on this card';
+    note.title = note.textContent;
   };
   syncPreset();
   ps.addEventListener('change', () => {
@@ -234,16 +244,21 @@ function rosterCard(side, idx) {
   });
   pickPreset.append(capText('preset'), ps, note);
   wrap.appendChild(pickPreset);
-  const specs = document.createElement('div');
-  specs.className = 'specs';
+  // The numbers a team actually edits between MATCHes stay on the card. The per-level times and drop
+  // rates below them are measured once against a recording and then left alone; with all nineteen rows
+  // open, the rail was three screens tall and the field was never on the same screen as the card.
+  const core = document.createElement('div');
+  core.className = 'specs';
+  const extra = document.createElement('div');
+  extra.className = 'specs';
   for (const f of SPEC_FIELDS) {
-    specs.appendChild(specField(f, () => (f.get ? f.get(p) : p[f.key]), (v) => {
+    (CORE_SPECS.has(f.key) ? core : extra).appendChild(specField(f, () => (f.get ? f.get(p) : p[f.key]), (v) => {
       if (f.set) f.set(p, v);
       else p[f.key] = v;
       syncPreset();
     }));
   }
-  wrap.appendChild(specs);
+  wrap.appendChild(core);
   const pick = document.createElement('label');
   pick.className = 'pick chassis';
   const ch = document.createElement('select');
@@ -260,6 +275,17 @@ function rosterCard(side, idx) {
   cap.textContent = 'drivetrain';
   pick.append(cap, ch);
   wrap.appendChild(pick);
+  const more = document.createElement('details');
+  more.className = 'spec-more';
+  more.open = OPEN_SPECS.has(`${side}:${idx}`);
+  more.addEventListener('toggle', () => {
+    if (more.open) OPEN_SPECS.add(`${side}:${idx}`);
+    else OPEN_SPECS.delete(`${side}:${idx}`);
+  });
+  const sum = document.createElement('summary');
+  sum.textContent = 'Full specs';
+  more.append(sum, extra);
+  wrap.appendChild(more);
   return wrap;
 }
 
@@ -765,6 +791,8 @@ function sizeCanvas() {
 
 function paintFrame() {
   const m = state.match;
+  const empty = $('canvas-empty');
+  if (empty) empty.hidden = !!m;
   if (!m) return;
   const f = interpFrame(state.frame);
   sizeCanvas();
@@ -806,12 +834,15 @@ function paintFrame() {
   const strip = $('inventory-strip');
   strip.innerHTML = '';
   for (const side of ['blue', 'red']) {
+    // One wrapper per ALLIANCE so its label and its numbers never wrap apart on a narrow panel.
+    const row = document.createElement('span');
     const label = document.createElement('span');
     label.className = 'inv-label ' + side;
     label.textContent = side.toUpperCase();
     const val = document.createElement('b');
     val.textContent = free(side);
-    strip.append(label, val);
+    row.append(label, val);
+    strip.append(row);
   }
   paintReefLive(anchor);
   // The trend chart's white line sits on the same frame the two lines above were read from, so scrubbing moves
@@ -1724,8 +1755,8 @@ function renderBatch(e, ran, kind) {
 // Chart helpers (plain canvas, no libraries). Same construction as the 2026 page: the backing store
 // is the displayed box times devicePixelRatio, so a 1 px gridline is 1 px on a HiDPI screen.
 // ---------------------------------------------------------------------------------------------
-const CHART_GRID = '#1e2836';
-const CHART_AXIS = '#6f809b';
+const CHART_GRID = '#20242a';
+const CHART_AXIS = '#7a828b';
 
 function prepCanvas(canvas, fallbackW = 320, fallbackH = 130) {
   const dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -1753,7 +1784,7 @@ function histChart(canvas, series, labels) {
   ctx.textBaseline = 'middle';
   for (const f of [0, 0.5, 1]) {
     const y = h - padB - f * plotH;
-    ctx.strokeStyle = f === 0 ? '#33415a' : CHART_GRID;
+    ctx.strokeStyle = f === 0 ? '#3a424b' : CHART_GRID;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(padL, y + 0.5);
@@ -1765,7 +1796,7 @@ function histChart(canvas, series, labels) {
   const bw = (w - padL - 4) / k;
   const barW = Math.max(1.5, (bw - 3) / series.length);
   series.forEach((s, j) => {
-    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue(s.css).trim() || '#2f7de1';
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue(s.css).trim() || '#4b8ade';
     s.values.forEach((v, i) => {
       if (!v) return;
       const bh = (plotH * v) / max;
@@ -1801,13 +1832,13 @@ function redrawBatchCharts() {
 // computation over one record.
 // ---------------------------------------------------------------------------------------------
 const ACTION_COLOR = {
-  'fetch-coral': '#3f8ecb', 'strip-algae': '#4fb0a5', place: '#f0b429', process: '#a56fd6',
-  'score-net': '#8fd6bd', climb: '#c86a5a', defend: '#d65f7c', idle: '#222d3c',
+  'fetch-coral': '#4b8ade', 'strip-algae': '#4f9c94', place: '#c9a45c', process: '#9a7fc0',
+  'score-net': '#5aa878', climb: '#bd6a5c', defend: '#b8657c', idle: '#20242a',
 };
-const SIDE_HEX = { blue: '#4f8fe0', red: '#e0596a' };
-const ALGAE_HEX = '#5fb98a';
-const LOOSE_HEX = '#9aa8bb';
-const PICK_COLOR = { station: SIDE_HEX, theirStation: '#e8a0a9', mark: '#f0b429', dropped: '#7f93b0' };
+const SIDE_HEX = { blue: '#4b8ade', red: '#e14b4f' };
+const ALGAE_HEX = '#5aa878';
+const LOOSE_HEX = '#8a9199';
+const PICK_COLOR = { station: SIDE_HEX, theirStation: '#d99aa3', mark: '#c9a45c', dropped: '#6b7178' };
 
 function timeX(t, span, padL, padR, w) {
   return padL + (span > 0 ? t / span : 0) * (w - padL - padR);
@@ -1847,7 +1878,7 @@ function linesChart(canvas, series, opts) {
   ctx.textBaseline = 'middle';
   for (const f of [0, 0.5, 1]) {
     const y = h - padB - f * (h - padB - padT);
-    ctx.strokeStyle = f === 0 ? '#33415a' : CHART_GRID;
+    ctx.strokeStyle = f === 0 ? '#3a424b' : CHART_GRID;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(padL, y + 0.5);
@@ -1874,7 +1905,7 @@ function linesChart(canvas, series, opts) {
   }
   if (markerT !== null) {
     const x = timeX(markerT, span, padL, 8, w);
-    ctx.strokeStyle = '#e8eef7';
+    ctx.strokeStyle = '#ecebe6';
     ctx.lineWidth = 1;
     ctx.globalAlpha = 0.65;
     ctx.beginPath();
@@ -1940,7 +1971,7 @@ function pickChart(canvas, rows, max) {
       ctx.fillRect(x, y + 1, Math.max(0.6, bw), rowH - 3);
       x += bw;
     }
-    ctx.fillStyle = '#cdd8e8';
+    ctx.fillStyle = '#c9c6bf';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     ctx.fillText(String(r.taken), padL + r.taken * scale + 4, y + rowH / 2);
