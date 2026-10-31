@@ -1,0 +1,8 @@
+# Cloudflare Pages headers. The consoles load their modules by plain relative path (no content hash),
+# so a 4 h browser cache would keep serving yesterday's engine.js after a deploy — which is exactly
+# what hid the first positional-settle fix from a reader. Everything under the two consoles
+# revalidates instead; the ETag still makes it a 304 when nothing changed.
+/rebuilt/*
+  Cache-Control: public, max-age=0, must-revalidate
+/reefscape/*
+  Cache-Control: public, max-age=0, must-revalidate
