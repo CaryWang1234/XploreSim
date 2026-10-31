@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const DIST = join(ROOT, 'dist');
 
-const PAGE_FILES = ['index.html', '404.html'];
+const PAGE_FILES = ['index.html', '404.html', 'icon.svg', 'rebuilt-piece.svg', 'reefscape-piece.svg'];
 const SEASONS = [
   { dir: 'rebuilt', from: 'rebuilt/web' },
   { dir: 'reefscape', from: 'reefscape/web' },

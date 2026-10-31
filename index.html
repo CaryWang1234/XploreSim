@@ -5,18 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>XploreSim · FRC match simulators for two seasons</title>
 <meta name="description" content="XploreSim hub: the entry points for two browser FRC match simulators and tactical planners — 2026 REBUILT and 2025 REEFSCAPE.">
-<meta name="theme-color" content="#080c12">
+<meta name="theme-color" content="#0c0d0f">
 <meta property="og:title" content="XploreSim · FRC match simulators for two seasons">
 <meta property="og:description" content="Two entries, one per season: a 0.1 s tick engine and a segment-by-segment tactical planner for the 2026 REBUILT and 2025 REEFSCAPE games.">
 <meta property="og:type" content="website">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23080c12'/%3E%3Ccircle cx='16' cy='16' r='7' fill='none' stroke='%23c9a45c' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='2.4' fill='%23c9a45c'/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
 <style>
 :root {
-  --bg: #080c12;
-  --text: #e9f0fa;
-  --dim: #8ea0bb;
-  --faint: #647694;
-  --line: #22303f;
+  --bg: #0c0d0f;
+  --panel: #121417;
+  --panel-2: #171a1e;
+  --line: #2a2f36;
+  --text: #ecebe6;
+  --dim: #a3a8ae;
+  --faint: #868c94;
   --rebuilt: #c9a45c;
   --reefscape: #5ccfd0;
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
@@ -34,16 +36,12 @@ body {
   grid-template-rows: auto 1fr;
   font-family: var(--sans);
   color: var(--text);
-  background:
-    radial-gradient(1000px 520px at 8% -14%, #17222f 0%, rgba(8, 12, 18, 0) 60%),
-    radial-gradient(820px 460px at 98% -6%, #14202e 0%, rgba(8, 12, 18, 0) 55%),
-    radial-gradient(1200px 620px at 50% 118%, #0f1a24 0%, rgba(8, 12, 18, 0) 62%),
-    var(--bg);
+  background: var(--bg);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
-/* ---------- the carpet, drawn in CSS: nothing here runs JavaScript ---------- */
+/* ---------- the carpet, flattened: a static hairline grid, nothing runs ---------- */
 
 .bg {
   position: fixed;
@@ -52,103 +50,15 @@ body {
   pointer-events: none;
 }
 
-.floor {
-  position: absolute;
-  left: -30%;
-  right: -30%;
-  bottom: -8%;
-  height: 68%;
-  perspective: 520px;
-  perspective-origin: 50% 0%;
-  -webkit-mask-image: linear-gradient(to top, #000 6%, rgba(0, 0, 0, .4) 42%, transparent 86%);
-  mask-image: linear-gradient(to top, #000 6%, rgba(0, 0, 0, .4) 42%, transparent 86%);
-}
-
 .grid {
   position: absolute;
-  inset: -45% -45%;
+  inset: 0;
   background-image:
-    linear-gradient(to right, rgba(150, 168, 190, .3) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(150, 168, 190, .3) 1px, transparent 1px),
-    linear-gradient(to right, rgba(150, 168, 190, .13) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(150, 168, 190, .13) 1px, transparent 1px);
-  background-size: 276px 276px, 276px 276px, 92px 92px, 92px 92px;
-  will-change: transform;
-  animation: roll 7s linear infinite;
-}
-
-/* Robot paths: streaks that run down the carpet plane, one tile ahead of the grid. */
-.lanes {
-  position: absolute;
-  inset: -45% -45%;
-  transform: rotateX(74deg);
-}
-.run {
-  position: absolute;
-  left: var(--x);
-  top: -30%;
-  width: 2px;
-  height: 26%;
-  background: linear-gradient(to bottom, transparent, var(--c), transparent);
-  animation: dash var(--t) linear infinite;
-  animation-delay: var(--s);
-}
-
-/* Where the carpet ends. */
-.horizon {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 24%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent 6%, rgba(201, 164, 92, .55) 34%, rgba(92, 207, 208, .55) 68%, transparent 94%);
-  box-shadow: 0 0 26px 5px rgba(150, 190, 210, .15);
-  animation: glint 8s ease-in-out infinite;
-}
-
-.glow {
-  position: absolute;
-  width: min(62vw, 780px);
-  aspect-ratio: 1;
-  border-radius: 50%;
-  filter: blur(72px);
-}
-.glow.warm {
-  left: -14%;
-  top: -24%;
-  background: radial-gradient(circle at 42% 42%,
-    rgba(201, 164, 92, .3) 0%, rgba(201, 164, 92, .13) 34%, rgba(201, 164, 92, .04) 56%, rgba(201, 164, 92, 0) 74%);
-  animation: drift-a 19s ease-in-out infinite alternate;
-}
-.glow.cool {
-  right: -14%;
-  top: -20%;
-  background: radial-gradient(circle at 58% 42%,
-    rgba(92, 207, 208, .26) 0%, rgba(92, 207, 208, .11) 34%, rgba(92, 207, 208, .035) 56%, rgba(92, 207, 208, 0) 74%);
-  animation: drift-b 24s ease-in-out infinite alternate;
-}
-
-.beam {
-  position: absolute;
-  top: -35%;
-  left: -30%;
-  width: 24%;
-  height: 175%;
-  background: linear-gradient(to right, transparent, rgba(233, 240, 250, .095), transparent);
-  filter: blur(12px);
-  animation: sweep 15s ease-in-out infinite;
-}
-
-.spark {
-  position: absolute;
-  bottom: -4%;
-  left: var(--x);
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: rgba(142, 160, 187, .5);
-  animation: float 17s linear infinite;
-  animation-delay: var(--s);
+    linear-gradient(to right, rgba(236, 235, 230, .04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(236, 235, 230, .04) 1px, transparent 1px);
+  background-size: 112px 112px;
+  -webkit-mask-image: radial-gradient(120% 90% at 50% 42%, #000 0%, rgba(0, 0, 0, .5) 58%, transparent 88%);
+  mask-image: radial-gradient(120% 90% at 50% 42%, #000 0%, rgba(0, 0, 0, .5) 58%, transparent 88%);
 }
 
 /* ---------- title bar ---------- */
@@ -157,51 +67,41 @@ body {
   position: sticky;
   top: 0;
   z-index: 3;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 16px;
-  padding: 15px clamp(18px, 4vw, 42px) 14px;
+  padding: 11px clamp(18px, 4vw, 32px);
+  background: var(--bg);
   border-bottom: 1px solid var(--line);
-  background: rgba(8, 12, 18, .58);
-  -webkit-backdrop-filter: blur(9px) saturate(1.15);
-  backdrop-filter: blur(9px) saturate(1.15);
-}
-.bar::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto;
-  height: 2px;
-  background: linear-gradient(90deg, var(--rebuilt), var(--reefscape));
 }
 
 .mark {
-  grid-column: 2;
-  justify-self: center;
   display: inline-flex;
   align-items: center;
-  gap: 11px;
+  gap: 10px;
   font-family: var(--mono);
-  font-size: 13.5px;
-  letter-spacing: .3em;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .16em;
   text-transform: uppercase;
   color: var(--text);
   white-space: nowrap;
 }
+.mark img { display: block; width: 28px; height: 28px; }
 .mark em {
   font-family: var(--sans);
   font-style: normal;
-  font-size: 12.5px;
-  letter-spacing: .04em;
+  font-weight: 400;
+  font-size: 11.5px;
+  letter-spacing: .02em;
   text-transform: none;
   color: var(--faint);
 }
 .host {
-  grid-column: 3;
-  justify-self: end;
   font-family: var(--mono);
-  font-size: 11.5px;
-  letter-spacing: .1em;
+  font-size: 11px;
+  letter-spacing: .06em;
   color: var(--faint);
   text-align: right;
   min-width: 0;
@@ -213,96 +113,85 @@ body {
 .stage {
   display: grid;
   place-items: center;
-  padding: clamp(40px, 11vh, 120px) clamp(18px, 5vw, 42px) clamp(32px, 8vh, 90px);
+  padding: clamp(40px, 10vh, 96px) clamp(18px, 5vw, 42px);
   position: relative;
   z-index: 1;
-  overflow: hidden;
-}
-/* The pool the two entries sit in. Out of flow, so the grid still centres the nav. */
-.stage::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  translate: -50% -50%;
-  width: min(1180px, 96%);
-  height: min(66vh, 560px);
-  background: radial-gradient(58% 62% at 50% 50%, rgba(196, 220, 255, .11), rgba(196, 220, 255, 0) 72%);
-  animation: breathe 9s ease-in-out infinite alternate;
-  pointer-events: none;
 }
 .entries {
-  position: relative;
-  z-index: 1;
-  width: min(600px, 100%);
+  width: min(680px, 100%);
   display: grid;
-  gap: 13px;
+  gap: 12px;
 }
 
 .go {
   position: relative;
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: 1fr auto auto;
+  grid-template-areas:
+    "year piece arrow"
+    "name piece arrow";
   align-items: center;
-  gap: 14px;
-  padding: 12px 16px 12px 21px;
+  column-gap: 16px;
+  padding: 15px 18px 15px 23px;
   border: 1px solid var(--line);
-  border-radius: 11px;
-  background: linear-gradient(104deg, rgba(25, 36, 49, .9) 0%, rgba(13, 19, 27, .84) 100%);
+  border-radius: 7px;
+  background: var(--panel);
   color: var(--text);
   text-decoration: none;
-  overflow: hidden;
-  transition: transform .3s cubic-bezier(.2, .8, .2, 1), border-color .3s;
+  transition: border-color .18s ease, background-color .18s ease;
 }
 .go::before {
   content: "";
   position: absolute;
   inset: 0 auto 0 0;
   width: 3px;
+  border-radius: 7px 0 0 7px;
   background: var(--tone);
 }
-.go::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(105deg, transparent 32%, rgba(233, 240, 250, .11) 50%, transparent 68%);
-  transform: translateX(-110%);
-  transition: transform .65s cubic-bezier(.2, .8, .2, 1);
-}
-.go > span { position: relative; z-index: 1; }
 .go:hover, .go:focus-visible {
-  transform: translateY(-2px);
   border-color: var(--tone);
+  background: var(--panel-2);
 }
-.go:hover::after, .go:focus-visible::after { transform: translateX(110%); }
 .go:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
-.go:active { transform: translateY(-1px); }
 
 .go.rebuilt { --tone: var(--rebuilt); }
 .go.reefscape { --tone: var(--reefscape); }
 
+.piece {
+  grid-area: piece;
+  align-self: center;
+  display: block;
+  width: 54px;
+  height: 54px;
+}
 .yr {
+  grid-area: year;
+  align-self: end;
   font-family: var(--mono);
   font-size: 10.5px;
-  letter-spacing: .18em;
+  letter-spacing: .14em;
   color: var(--faint);
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
-  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.name {
+  grid-area: name;
+  align-self: start;
 }
 .name b {
   display: block;
   font-family: var(--mono);
-  font-size: clamp(16px, 2.4vw, 19px);
+  font-size: clamp(16px, 2.2vw, 18px);
   font-weight: 600;
-  letter-spacing: .05em;
-  line-height: 1.14;
+  letter-spacing: .04em;
+  line-height: 1.2;
 }
 .name em {
   display: block;
   font-style: normal;
-  margin-top: 3px;
-  font-size: 11.5px;
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.45;
   color: var(--dim);
 }
 .name i {
@@ -311,93 +200,43 @@ body {
   color: var(--tone);
 }
 .arrow {
+  grid-area: arrow;
+  align-self: center;
   font-family: var(--mono);
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1;
   color: var(--tone);
-  transition: transform .3s cubic-bezier(.2, .8, .2, 1);
+  transition: transform .18s ease;
 }
 .go:hover .arrow, .go:focus-visible .arrow { transform: translateX(4px); }
 
-@keyframes roll {
-  from { transform: rotateX(74deg) translateY(0); }
-  to { transform: rotateX(74deg) translateY(92px); }
-}
-@keyframes dash {
-  0% { transform: translateY(-70%); opacity: 0; }
-  14% { opacity: 1; }
-  80% { opacity: 1; }
-  100% { transform: translateY(430%); opacity: 0; }
-}
-@keyframes glint {
-  0%, 100% { opacity: .45; transform: scaleX(.93); }
-  50% { opacity: 1; transform: scaleX(1); }
-}
-@keyframes drift-a { to { transform: translate3d(8vw, 5vh, 0) scale(1.14); } }
-@keyframes drift-b { to { transform: translate3d(-9vw, 7vh, 0) scale(1.1); } }
-@keyframes sweep {
-  0% { transform: rotate(15deg) translateX(-20vw); opacity: 0; }
-  20% { opacity: 1; }
-  58% { opacity: 1; }
-  72% { transform: rotate(15deg) translateX(190vw); opacity: 0; }
-  100% { transform: rotate(15deg) translateX(190vw); opacity: 0; }
-}
-@keyframes float {
-  0% { transform: translateY(0) scale(.5); opacity: 0; }
-  10% { opacity: .7; }
-  85% { opacity: .5; }
-  100% { transform: translateY(-88vh) scale(1.1); opacity: 0; }
-}
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 
-@keyframes breathe { from { opacity: .5; scale: .93; } to { opacity: 1; scale: 1.07; } }
-@keyframes rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
-
-.reveal { animation: rise .8s cubic-bezier(.2, .8, .2, 1) both; animation-delay: var(--d, 0s); }
+.reveal { animation: rise .45s ease both; animation-delay: var(--d, 0s); }
 
 @media (max-width: 560px) {
-  .bar { grid-template-columns: 1fr; gap: 5px; padding-top: 12px; }
-  .mark { grid-column: 1; font-size: 12.5px; letter-spacing: .2em; }
+  .bar { flex-wrap: wrap; gap: 6px; }
+  .mark { font-size: 12px; letter-spacing: .12em; }
   .mark em { display: none; }
-  .host { grid-column: 1; justify-self: center; text-align: center; font-size: 10px; letter-spacing: .02em; }
-  .go { gap: 11px; padding: 11px 13px 11px 17px; }
+  .host { width: 100%; text-align: left; font-size: 10px; letter-spacing: .02em; }
+  .go { column-gap: 12px; padding: 14px 14px 14px 19px; }
+  .piece { width: 44px; height: 44px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
   .reveal { opacity: 1; transform: none; }
-  .grid { transform: rotateX(74deg); }
 }
 </style>
 </head>
 <body>
 
 <div class="bg" aria-hidden="true">
-  <div class="floor">
-    <div class="grid"></div>
-    <div class="lanes">
-      <i class="run" style="--x:40%;--c:rgba(201, 164, 92, .95);--t:6.5s;--s:-1.4s"></i>
-      <i class="run" style="--x:49%;--c:rgba(92, 207, 208, .95);--t:8.4s;--s:-5.2s"></i>
-      <i class="run" style="--x:58%;--c:rgba(201, 164, 92, .8);--t:7.2s;--s:-3.1s"></i>
-      <i class="run" style="--x:67%;--c:rgba(92, 207, 208, .8);--t:9.6s;--s:-7.8s"></i>
-    </div>
-  </div>
-  <span class="horizon"></span>
-  <span class="glow warm"></span>
-  <span class="glow cool"></span>
-  <span class="beam"></span>
-  <i class="spark" style="--x:7%;--s:0s"></i>
-  <i class="spark" style="--x:19%;--s:-4.2s"></i>
-  <i class="spark" style="--x:28%;--s:-8.6s"></i>
-  <i class="spark" style="--x:39%;--s:-2.4s"></i>
-  <i class="spark" style="--x:52%;--s:-11.1s"></i>
-  <i class="spark" style="--x:63%;--s:-6.3s"></i>
-  <i class="spark" style="--x:74%;--s:-13.8s"></i>
-  <i class="spark" style="--x:86%;--s:-1.5s"></i>
-  <i class="spark" style="--x:94%;--s:-9.4s"></i>
+  <div class="grid"></div>
 </div>
 
 <header class="bar reveal">
-  <span class="mark">XploreSim<em>FRC match simulators</em></span>
+  <span class="mark"><img src="icon.svg" alt="" width="28" height="28">XploreSim<em>FRC match simulators</em></span>
   <span class="host">xploresim.salmoncat0304.xyz</span>
 </header>
 
@@ -406,12 +245,14 @@ body {
   <nav class="entries" aria-label="Season consoles">
     <a class="go rebuilt reveal" style="--d:.1s" href="/rebuilt/">
       <span class="yr">2026</span>
+      <img class="piece" src="rebuilt-piece.svg" alt="" width="54" height="54">
       <span class="name"><b>REBUILT</b><em>Drive the <i>HUB</i> · climb the <i>TOWER</i> · planner included</em></span>
       <span class="arrow" aria-hidden="true">&rarr;</span>
     </a>
 
     <a class="go reefscape reveal" style="--d:.18s" href="/reefscape/">
       <span class="yr">2025</span>
+      <img class="piece" src="reefscape-piece.svg" alt="" width="54" height="54">
       <span class="name"><b>REEFSCAPE</b><em>Stock the <i>REEF</i> · clear the <i>PROCESSOR</i> · cage depth</em></span>
       <span class="arrow" aria-hidden="true">&rarr;</span>
     </a>

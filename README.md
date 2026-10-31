@@ -12,6 +12,9 @@ One site with three entry points, hosted on Cloudflare Pages at `xploresim.salmo
 
 ```
 index.html 404.html      hub and 404, zero JS, zero external fonts
+icon.svg                 the family mark, favicon for all three pages
+rebuilt-piece.svg        FUEL, the 2026 game piece, drawn for the hub's dark panels
+reefscape-piece.svg      CORAL, the 2025 game piece, same treatment
 scripts/build-site.mjs   assembles dist/: root pages + each season's web/
 scripts/serve.mjs        previews dist/ locally, with Pages' directory-index and 404 rules
 scripts/check.mjs        hub guard: links, structure, stylesheet and markup cross-check
