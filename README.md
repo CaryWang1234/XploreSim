@@ -1,70 +1,87 @@
-# XploreSim · 站点总仓
+# XploreSim · one repo, one site
 
-一个站点，三个入口，托管在 Cloudflare Pages，绑定 `xploresim.salmoncat0304.xyz`。
+One site with three entry points, hosted on Cloudflare Pages at `xploresim.salmoncat0304.xyz`.
 
-| 路径 | 内容 |
+| Path | What it is |
 | --- | --- |
-| `/` | 中心页：两个赛季的入口 |
-| `/rebuilt/` | 2026 REBUILT 推演台 |
-| `/reefscape/` | 2025 REEFSCAPE 推演台 |
+| `/` | Hub: the way in to both seasons |
+| `/rebuilt/` | 2026 REBUILT console |
+| `/reefscape/` | 2025 REEFSCAPE console |
 
-## 目录
-
-```
-index.html 404.html      中心页与 404，零 JS、零外部字体
-scripts/build-site.mjs   组装 dist/：根页面 + 两个赛季各自的 web/
-scripts/serve.mjs        本地预览 dist/，目录索引与 404 规则和 Pages 一致
-scripts/check.mjs       中心页守卫：链接、结构、样式互查
-rebuilt/                 2026 版子树（web/ 是站点，scripts/ 是测量与守卫，docs/ 是资料）
-reefscape/               2025 版子树（同上）
-dist/                    构建产物，gitignore
-```
-
-## 命令
+## Layout
 
 ```
-npm run build      # dist/ = 根页面 + /rebuilt/ + /reefscape/
-npm run serve      # http://127.0.0.1:4190/ 预览 dist/
-npm run check      # 中心页守卫（SKIP_NET=1 跳过线上 200 检查）
-npm run check:apps # 两个 app 各自的静态守卫
-npm test           # 两个 app 的 headless 测试
-npm run validate   # 以上全部 + 构建，.githooks/pre-push 跑的就是它
+index.html 404.html      hub and 404, zero JS, zero external fonts
+scripts/build-site.mjs   assembles dist/: root pages + each season's web/
+scripts/serve.mjs        previews dist/ locally, with Pages' directory-index and 404 rules
+scripts/check.mjs        hub guard: links, structure, stylesheet and markup cross-check
+rebuilt/                 2026 subtree (web/ is the site, scripts/ the measurements and guards, docs/ the notes)
+reefscape/               2025 subtree (same shape)
+dist/                    build output, gitignored
 ```
 
-引擎级验证留在各自目录，不进 pre-push：`npm --prefix rebuilt run validate` 与
-`npm --prefix reefscape run validate`（后者含约五十条物理不变量，十几分钟）。碰了引擎代码的推送前手动跑一遍。
+## Commands
 
-## 部署
+```
+npm run build      # dist/ = root pages + /rebuilt/ + /reefscape/
+npm run serve      # preview dist/ at http://127.0.0.1:4190/
+npm run check      # hub guard (SKIP_NET=1 skips the live 200 checks)
+npm run check:apps # both apps' static guards
+npm test           # both apps' headless tests
+npm run validate   # all of the above plus the build; this is what .githooks/pre-push runs
+```
 
-Cloudflare Pages，production branch `main`：
+Engine-level suites stay in their own directories and are not part of pre-push:
+`npm --prefix rebuilt run validate` and `npm --prefix reefscape run validate` (the latter carries
+about fifty physics invariants and takes over ten minutes). Run them by hand before a push that
+touches engine code.
+
+## Deployment
+
+Cloudflare Pages, production branch `main`:
 
 ```
 Build command:  npm run build
 Output:         dist
 ```
 
-两个 app 的资源全部相对引用（`./js/...`，Worker 走 `import.meta.url`），所以 `web/` 换个目录前缀就能跑，
-业务代码一行不用改。localStorage 的 key 按赛季分开（`xplore-sim-setup-v1` /
-`xplore-reefscape-setup-v1`），同域共存不串。
+Everything an app ships is referenced relatively (`./js/...`, the Worker via `import.meta.url`), so
+`web/` runs unchanged under any path prefix. localStorage keys are per season
+(`xplore-sim-setup-v1` / `xplore-reefscape-setup-v1`), so the two consoles share an origin without
+crossing.
 
-## 域名
+As observed in October 2026, a push to `main` does not trigger a build on its own. Create the
+production deployment through the Pages API, then confirm the new version by fetching a changed
+asset from the live site — not just by checking that the push went through.
 
-`xploresim` 是 `salmoncat0304.xyz` 下的一条记录，2026-10 从 GitHub Pages 迁到 Cloudflare Pages
-自定义域。旧库的 CNAME 文件与 Pages 发布已撤；`frc-rebuilt-tactics-*.qoder.zone` 与
-`frc-reefscape-tactics-*.qoder.zone` 两个旧站暂留作回退。
+## Domain
 
-## 页面只放入口
+`xploresim` is a record under `salmoncat0304.xyz`, moved from GitHub Pages to a Cloudflare Pages
+custom domain in October 2026. The old repos' CNAME files and Pages publishes were removed; the two
+old `frc-rebuilt-tactics-*.qoder.zone` / `frc-reefscape-tactics-*.qoder.zone` sites stay up as
+fallbacks for now.
 
-中心页不抄任何测量数字：真实比分锚、镜像、AI 胜率这些一律留在两个 app 自己的 README 里，本页只把人送到
-两个赛季站点。`scripts/check.mjs` 里对应一条「页面保持指路牌」的守卫：出现 `<article>`／`<details>`／
-`<svg>`／`class="card"`／`class="num"` 就报错，防止带数字的卡片被重新搬回首页。
+## The hub stays a signpost
 
-页面正文只写英文，`npm run check` 里有一条 CJK 守卫盯这件事。背景全部用 CSS 画：底部的透视网格是赛场地毯，
-左上与右上的两团辉光分别取两个赛季的颜色（2026 土黄 `#c9a45c`、2025 青 `#5ccfd0`），这两个是全页仅有的强调色，
-`prefers-reduced-motion` 下所有动画一律关掉。
+The hub copies no measured numbers: real score anchors, mirror matches and AI win rates all live in
+each app's own README; the page only sends people to the two season sites. `scripts/check.mjs`
+enforces that with a "the page stays a signpost" guard — `<article>`, `<details>`, `<svg>`,
+`class="card"` or `class="num"` fails the check, so number-bearing cards cannot creep back onto the
+hub.
 
-## 历史
+The page copy is English only, and a CJK guard inside `npm run check` watches that. The whole
+backdrop is CSS: the perspective grid along the bottom is the field carpet, and the two glows in the
+top corners take the season colours (2026 sand `#c9a45c`, 2025 teal `#5ccfd0`). Those are the only
+accents on the page, and every animation is off under `prefers-reduced-motion`.
 
-由三个库合并：中心页（`xploresim-hub`，成为根历史）、2026 版（`rebuilt/`，subtree 自
-`XploreSim_dev`）、2025 版（`reefscape/`，subtree 自 `XploreSim_reefscape`）。两个 app 的提交历史完整保留，
-`git log -- rebuilt/` 能翻到它们各自的提交。旧库在域名切换完成后归档。
+## History
+
+Merged from three repositories: the hub (`xploresim-hub`, which became the root history), the 2026
+build (`rebuilt/`, subtree from `XploreSim_dev`) and the 2025 build (`reefscape/`, subtree from
+`XploreSim_reefscape`). Both apps' commit history is intact — `git log -- rebuilt/` reaches their own
+commits. The old repos were archived once the domain switch was done.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
