@@ -461,7 +461,12 @@ test('a declared AUTO is what scores in AUTO, and nothing is invented to do it',
   // Both HUBs are live during AUTO (§6.4.1), so the HUMAN PLAYER's feed lands in the same number the
   // routines do. The routine's own accounting is exact: three declared 40s all go in.
   assert.equal(blue.reduce((a, s) => a + s.autoRoutine.banked, 0), 120, 'a declared load that fits the machine should fire inside the 20 seconds');
-  assert.ok(dec.autoFuel.blue >= 120 && dec.autoFuel.blue <= 132, `autoFuel.blue ${dec.autoFuel.blue} is not 120 plus an HUMAN PLAYER feed`);
+  // `autoFuel` also counts the two things the routine is not: the HP's throws from 0 to 20 s plus the
+  // 3 s assessment grace (§6.5), which is at most 10 throws at 0.4/s and 75% in, and what a ROBOT
+  // sweeps and fires once its routine releases at TRANSITION inside that same grace — six pieces on
+  // this build. The ceiling is those three buckets added; a declaration that quietly kept collecting
+  // during AUTO would land far past it.
+  assert.ok(dec.autoFuel.blue >= 120 && dec.autoFuel.blue <= 136, `autoFuel.blue ${dec.autoFuel.blue} is not 120 plus an HUMAN PLAYER feed and the TRANSITION leftovers`);
   assert.ok(dec.autoFuel.blue > sim.autoFuel.blue, `the declaration did not beat the simulated AUTO (${sim.autoFuel.blue} → ${dec.autoFuel.blue})`);
   // The FUEL came off the carpet, it was not conjured: three machines taking on 32 beyond their legal
   // preload leaves 96 fewer pieces lying in the NEUTRAL ZONE at the whistle.

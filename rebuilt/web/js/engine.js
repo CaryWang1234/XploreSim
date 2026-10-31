@@ -1133,6 +1133,37 @@ export function simulateMatch(opts) {
     rb.y = clamp(rb.y, 6, GEO.W - 6);
   }
 
+  // A ROBOT anchored to the TOWER is not shoved around, and ALLIANCE partners may not support each
+  // other to climb (G414). Two partners staging on the same TOWER are climbing different LEVELS of one
+  // 3-D structure, so in this top-down view they overlap instead of shoving each other off the base;
+  // without that a three-ROBOT climb degenerates into a shoving match at the TOWER.
+  const anchored = (r) => r.climb.attaching || r.climb.progress > 0 || r.climb.done;
+  const onTower = (r) =>
+    r.intent.mode === INTENT.CLIMB &&
+    Math.hypot(r.x - GEO[r.alliance].tower.x, r.y - GEO[r.alliance].tower.y) < 46;
+
+  // The position a ROBOT is allowed to occupy once the tick's interactions are done: inside the
+  // guardrails, on its side of the band if it can clear neither a BUMP nor a TRENCH, and in the lane
+  // its BUMP/TRENCH seam admits. A shove moves a ROBOT as a side effect of resolving ANOTHER one, so
+  // these have to be constraints on the position rather than only on the movement. The guardrail clamp
+  // is the whole of the HUMAN PLAYER's protection (G421): the HP works in the OUTPOST outside the
+  // ALLIANCE WALL, and nothing on the FIELD is allowed to reach that far.
+  function keepInField(rb) {
+    rb.x = clamp(rb.x, 6, GEO.L - 6);
+    rb.y = clamp(rb.y, 6, GEO.W - 6);
+    if (!(rb.canBump || rb.canTrench)) {
+      const band = GEO[rb.alliance].band;
+      rb.x = rb.alliance === 'red' ? Math.min(rb.x, band[0] - 4) : Math.max(rb.x, band[1] + 4);
+    }
+    const side = sc.seamLock === false ? null : bandAtX(rb.x);
+    if (!side) {
+      rb.bandLock = null;
+      return;
+    }
+    if (!rb.bandLock || rb.bandLock.side !== side) rb.bandLock = { side, region: bandRegionOf(rb.y) };
+    rb.y = clampToBandRegion(rb.y, rb.bandLock.region);
+  }
+
   const cell = 40;
   const gw = Math.ceil(GEO.L / cell);
   const gh = Math.ceil(GEO.W / cell);
@@ -1921,8 +1952,17 @@ export function simulateMatch(opts) {
   function blockedFlight(i, shooter, blocker, stopX, stopY) {
     flights.delete(i);
     // A shot taken by a car standing at a HUB is stopped over the prism, and a FUEL must not come to rest
-    // inside one, so the stop point is pulled back out along the line it came in on.
-    const stopped = stopAtBumper ? pullBackAlongLane(stopX, stopY, fvx[i], fvy[i], FUEL_RADIUS_IN) : { x: stopX, y: stopY };
+    // inside one, so the stop point is pulled back out along the line it came in on. With the pull-back
+    // off, `sc.blockOvershootIn` carries the piece that far past the raw stop instead: the verifier's
+    // control for "a stopped FUEL comes to rest where it was hit", sized so it must break the continuity
+    // bound no matter which ROBOT happened to block the lane.
+    const stopped = stopAtBumper
+      ? pullBackAlongLane(stopX, stopY, fvx[i], fvy[i], FUEL_RADIUS_IN)
+      : (() => {
+          const speed = Math.hypot(fvx[i], fvy[i]) || 1;
+          const past = sc.blockOvershootIn ?? 0;
+          return { x: stopX + (fvx[i] / speed) * past, y: stopY + (fvy[i] / speed) * past };
+        })();
     const land = placeLoose(i, stopped.x, stopped.y);
     fstate[i] = 0;
     fx[i] = land.x;
@@ -2513,15 +2553,8 @@ export function simulateMatch(opts) {
         // Broad phase on the circumscribed circles; squareContact does the real test.
         if (d >= (footprintHalf(rb) + footprintHalf(o)) * 1.4143) continue;
         // A ROBOT anchored to the TOWER is not shoved around, and ALLIANCE partners may not
-        // support each other to climb (G414).
-        const anchored = (r) => r.climb.attaching || r.climb.progress > 0 || r.climb.done;
+        // support each other to climb (G414) — see `anchored` / `onTower` above the step loop.
         if (anchored(rb) || anchored(o)) continue;
-        // Two partners staging on the same TOWER are climbing different LEVELS of one 3-D structure,
-        // so in this top-down view they overlap instead of shoving each other off the base. Without
-        // this, a three-ROBOT climb degenerates into a shoving match at the TOWER.
-        const onTower = (r) =>
-          r.intent.mode === INTENT.CLIMB &&
-          Math.hypot(r.x - GEO[r.alliance].tower.x, r.y - GEO[r.alliance].tower.y) < 46;
         if (rb.alliance === o.alliance && onTower(rb) && onTower(o)) continue;
         const hit = squareContact(o, rb);
         if (!hit) continue;
@@ -2764,42 +2797,46 @@ export function simulateMatch(opts) {
       if (intent.mode) rb.stat.modeSec[intent.mode] += tick;
     }
 
-    // Every ROBOT is back inside the guardrails once the tick's interactions are done. The ROBOT-vs-
-    // ROBOT shove above resolves two bodies against each other and is not itself checked against the
-    // walls, so without this pass a shove can poke a ROBOT through the ALLIANCE WALL — and the
-    // ALLIANCE WALL is the whole of the HUMAN PLAYER's protection (G421): the HP works in the OUTPOST
-    // outside it, and nothing on the FIELD is allowed to reach that far.
-    for (const rb of robots) {
-      rb.x = clamp(rb.x, 6, GEO.L - 6);
-      rb.y = clamp(rb.y, 6, GEO.W - 6);
-    }
+    // Every ROBOT is back inside the guardrails, its band and its seam once the tick's interactions
+    // are done — see keepInField() for why a shove has to be answered on the position.
+    for (const rb of robots) keepInField(rb);
 
-    // A ROBOT that can clear neither a BUMP nor a TRENCH cannot pass the band at all. navTarget
-    // already refuses to route it across, but that test only fires while the ROBOT is still clear of
-    // the band and aiming at the far side, and a shove can put it inside the band, where the test
-    // silently stops applying and it would drive the whole FIELD. The constraint therefore lives on
-    // the position itself, and is re-applied here rather than inline: the shove pass above moves a
-    // ROBOT as a side effect of resolving ANOTHER one, so an inline clamp is not the last word.
-    for (const rb of robots) {
-      if (rb.canBump || rb.canTrench) continue;
-      const band = GEO[rb.alliance].band;
-      rb.x = rb.alliance === 'red' ? Math.min(rb.x, band[0] - 4) : Math.max(rb.x, band[1] + 4);
-    }
-
-    // The BUMP/TRENCH seam (§5.5/§5.6). A ROBOT whose centre is inside a band keeps the lane it came in
-    // through: the seam between a BUMP and a TRENCH is where two different structures meet, not a
-    // doorway, so sliding sideways from the top of a ramp onto the approach of an arm is not a move this
-    // FIELD offers. navTarget plans around it; this is the same constraint on the POSITION, because a
-    // shove moves a ROBOT as a side effect of resolving another one, and because a ROBOT can be pushed in
-    // through a lane it never chose.
-    for (const rb of robots) {
-      const side = sc.seamLock === false ? null : bandAtX(rb.x);
-      if (!side) {
-        rb.bandLock = null;
-        continue;
+    // ---- positional settle ----
+    // The shove above is one soft pass per pair (`hit.pen * 0.55`), run while each ROBOT moves. That is
+    // enough for two ROBOTs that meet and stop, but a ROBOT driving into a partner that is pinned
+    // against a guardrail closes more every tick than 55% of the overlap opens, and the pair settles
+    // inches deep — the replay draws the two squares merged. A shove can also leave a ROBOT inside the
+    // HUB or the TOWER, because the structure resolution runs on the mover before the shove does.
+    // Five sweeps, the last at full depth, with the field constraints and the structures re-applied
+    // between them, leave only the overlap that one tick of motion can re-close. (The 2025 engine has
+    // swept its pairs this way since it hit the same bug; see contactPass in reefscape/web/js/engine.js.)
+    // `sc.robotSettle = false` runs the soft pass alone as the verifier's control.
+    if (sc.robotSettle !== false) for (let sweep = 0; sweep < 5; sweep++) {
+      let any = false;
+      for (let i = 0; i < robots.length; i++) {
+        const a = robots[i];
+        if (a.disabled) continue;
+        for (let j = i + 1; j < robots.length; j++) {
+          const b = robots[j];
+          if (b.disabled) continue;
+          if (anchored(a) || anchored(b)) continue;
+          if (a.alliance === b.alliance && onTower(a) && onTower(b)) continue;
+          const hit = squareContact(a, b);
+          if (!hit) continue;
+          any = true;
+          const w = a.weightLb / (a.weightLb + b.weightLb);
+          const share = hit.pen * (sweep === 4 ? 1 : 0.6);
+          a.x -= hit.ux * share * (1 - w);
+          a.y -= hit.uy * share * (1 - w);
+          b.x += hit.ux * share * w;
+          b.y += hit.uy * share * w;
+        }
       }
-      if (!rb.bandLock || rb.bandLock.side !== side) rb.bandLock = { side, region: bandRegionOf(rb.y) };
-      rb.y = clampToBandRegion(rb.y, rb.bandLock.region);
+      for (const rb of robots) {
+        if (!rb.disabled) obstacleResolve(rb);
+        keepInField(rb);
+      }
+      if (!any) break;
     }
 
     // ---- HUMAN PLAYER actions (§6.1, §5.9.2) ----

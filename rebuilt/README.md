@@ -315,14 +315,17 @@ Stated on the page too, because a planner is used to make decisions:
 ## Calibration anchors
 
 Real 2026 Einstein Finals data from The Blue Alliance (event `2026cmptx`): alliance average 627, high
-842. The greedy same-roster mirror is 566.2 (566.3 and 566.1 across the two seed sets, the trio
-254/1678/1690 on both ALLIANCES), 9.7% under that average; the other trio, 4414/5940/11019, reads 528.7 on
+842. The greedy same-roster mirror is 562.6 (562.9 and 562.3 across the two seed sets, the trio
+254/1678/1690 on both ALLIANCES), 10.3% under that average; the other trio, 4414/5940/11019, reads 535.0 on
 the same MATCHes, which is the roster and not the seat. Against the hand-written greedy cycling baseline, on
 identical ROBOTs, the search wins 78.1% of MATCHes (n=96, 24 per family over four disjoint seed families)
 with a margin of +37.2 and a score of 661.4 against 624.2.
 
-The anchor sits 9.7% under, outside the ±2% the mirror is read in, and it is disclosed rather than tuned
-back. A chain of model changes put it there, most of them read off `npm run knob`, which averages both
+The anchor sits 10.3% under, outside the ±2% the mirror is read in, and it is disclosed rather than tuned
+back. The last half percent of it is the positional settle that stops two ROBOTs interpenetrating (the
+greedy mirror 566.2 → 562.6, the AI's own mirror 563.4 → 562.1); the pinned all-SCORE mirrors moved far
+more, because a partner that used to stand inside the shooter no longer blocks the lane it is shooting
+down. A chain of model changes put it where it is, most of them read off `npm run knob`, which averages both
 rosters and therefore sits about 17 points under the anchor's own scale; the OUTPOST corner, two paragraphs
 down, is the one that gave 3.5 of it back. The BUMP/TRENCH seam
 (§5.5/§5.6: a TRENCH runs guardrail-to-BUMP, so the two lanes inside a band meet at one seam and nothing

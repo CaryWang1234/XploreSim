@@ -4,7 +4,7 @@
 
 import { TIME, POINTS, FUEL, FIELD, rpBars } from '../web/js/rules.js';
 import { defaultScenario, makeAlliance, makeRobot, SAMPLES, periodAt } from '../web/js/model.js';
-import { simulateMatch, INTENT, GEO, CONTACT_UNABLE_SEVERITY, segmentBoxEntry, bandAtX, bandRegionOf, BUMP_TRENCH_SEAM_IN } from '../web/js/engine.js';
+import { simulateMatch, INTENT, GEO, CONTACT_UNABLE_SEVERITY, segmentBoxEntry, bandAtX, bandRegionOf, BUMP_TRENCH_SEAM_IN, squareContact } from '../web/js/engine.js';
 import { monteCarlo, matchSeed } from '../web/js/mc.js';
 import { DEFAULT_WEIGHTS, humanChoice } from '../web/js/ai.js';
 import { readFileSync } from 'node:fs';
@@ -942,9 +942,11 @@ function dispersionChecks(seed) {
   // The other control is for the class of landing the fan has nothing to do with: a launch a DEFENDER
   // stopped used to come to rest a whole tick past the bumper that took it — which, when the lane ran at
   // the HUB, is inside the prism, and expelling it from there moved the piece out through the nearest
-  // face, sometimes the far one. With both rules off this same walk breaks the bound, so the bound is
-  // reading the stop point and not only the spread.
-  const blocked = run(undefined, { blockStopAtBumper: 0, blockAboveOpening: 0 });
+  // face, sometimes the far one. Left exactly a tick past it stopped breaking the bound once the ROBOT
+  // shove was settled (fewer lanes ran straight at the prism), so the control now carries the piece
+  // `blockOvershootIn` past the raw stop: the size of the defect class, not one tick of it. It has to
+  // break the bound, or the bound is not reading the stop point.
+  const blocked = run(undefined, { blockStopAtBumper: 0, blockAboveOpening: 0, blockOvershootIn: 40 });
   // A PASS has its own walk, on a policy that actually throws: the reference policy above shoots at its own
   // HUB and has never passed in its life, which is how the throw came to be left out of this guard by a
   // `tgt === 3` in the reader rather than by anything anyone decided. The control is the earlier order — fly
@@ -1264,6 +1266,58 @@ function spacingChecks(seed) {
   console.log('--- FUEL spacing (opening frame, all loose FUEL, in) ---');
   console.log(`  spacing on   closest ${on.closest.toFixed(2)}   pairs under 3 in ${on.stacked}`);
   console.log(`  spacing off  closest ${off.closest.toFixed(2)}   pairs under 3 in ${off.stacked}`);
+}
+
+// ROBOT-ROBOT space. Two square ROBOTs may touch at the bumpers but must not share space. The shove
+// that runs while each ROBOT moves is one soft pass (`hit.pen * 0.55`), and a ROBOT driving into a
+// partner pinned against a guardrail closes more than that opens every tick: before the settle, pairs
+// sat up to 19 in deep for whole seconds and the replay drew the two squares merged. `sc.robotSettle =
+// false` runs the soft pass alone as the control, and this walk has to find the overlap it removes.
+// A ROBOT on the TOWER is above the carpet, and partners staging on the same TOWER overlap in this
+// top-down view by design (see the climb rules in engine.js), so those pairs are not in the walk.
+const OVERLAP_ALLOWED_IN = 6;
+function overlapRun(settle, seed) {
+  const red = makeAlliance(SAMPLES.slice(0, 3), 'red');
+  const blue = makeAlliance(SAMPLES.slice(3, 6), 'blue');
+  const half = new Map();
+  for (const r of [...red.robots, ...blue.robots]) half.set(r.idx, r.footprintHalfIn);
+  const res = simulateMatch({
+    redAlliance: red,
+    blueAlliance: blue,
+    redPolicy: naivePolicy('red'),
+    bluePolicy: naivePolicy('blue'),
+    scenario: { ...defaultScenario(), seed, robotSettle: settle },
+    record: true,
+  });
+  let worst = 0;
+  let deep = 0;
+  for (const fr of res.timeline) {
+    for (let i = 0; i < fr.r.length; i++) {
+      for (let j = i + 1; j < fr.r.length; j++) {
+        const a = fr.r[i];
+        const b = fr.r[j];
+        if (a.m === 'CLIMB' || b.m === 'CLIMB' || a.k > 0 || b.k > 0) continue;
+        const hit = squareContact(
+          { x: a.x, y: a.y, heading: a.h, footprintHalfIn: half.get(a.i) },
+          { x: b.x, y: b.y, heading: b.h, footprintHalfIn: half.get(b.i) },
+        );
+        if (!hit) continue;
+        if (hit.pen > worst) worst = hit.pen;
+        if (hit.pen > OVERLAP_ALLOWED_IN) deep += 1;
+      }
+    }
+  }
+  return { worst, deep };
+}
+
+function overlapChecks(seed) {
+  const on = overlapRun(undefined, seed);
+  const off = overlapRun(false, seed);
+  if (on.deep > 0) throw new Error(`two ROBOTs shared ${on.worst.toFixed(1)} in of space at a recorded frame, past the ${OVERLAP_ALLOWED_IN} in a settled pair is allowed`);
+  if (off.deep === 0) throw new Error('the settle-off control never put a pair past the overlap bound, so the walk is not reading the shove it is meant to catch');
+  console.log('--- ROBOT-ROBOT separation (worst square overlap at a recorded frame) ---');
+  console.log(`  settle on   worst ${on.worst.toFixed(1)} in   pairs past ${OVERLAP_ALLOWED_IN} in ${on.deep}`);
+  console.log(`  settle off  worst ${off.worst.toFixed(1)} in   pairs past ${OVERLAP_ALLOWED_IN} in ${off.deep}, so the walk is not blind`);
 }
 
 // A policy that hunts the nearest opponent with slot 0, so the opponent-interaction rules
@@ -1593,6 +1647,7 @@ aimChecks(20260110);
 hubExitChecks(20260110);
 startChecks(20260110);
 spacingChecks(20260110);
+overlapChecks(20260110);
 contactChecks(20260110);
 fieldChecks(20260110);
 flowChecks(20260110);
