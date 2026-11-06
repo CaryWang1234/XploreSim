@@ -2145,7 +2145,7 @@ function importMatch(text, label) {
   status(`Imported ${(data.ctx && data.ctx.seed) || 'seed ?'} · ${who} · recorded ${data.exportedAt || 'date unknown'}. Setup panels still show your current inputs.`, 'ok');
 }
 
-async function runSingle() {
+async function runSingle({ demo = false, autoplay = true } = {}) {
   if (state.busy) return;
   busy(true);
   state.lastRun = 'single';
@@ -2170,8 +2170,9 @@ async function runSingle() {
     renderResult(res, state.lastCtx);
     renderNotable();
     setFrame(0);
-    startPlayback();
-    status('Match done', 'ok');
+    if (autoplay) startPlayback();
+    else setFrame(Math.max(0, (res.timeline ? res.timeline.length : 1) - 1));
+    status(demo ? 'Sample match from the shipped rosters — change a card, then run it again' : 'Match done', 'ok');
   } catch (e) {
     taskFailure('Match failed', e);
   } finally {
@@ -2485,18 +2486,18 @@ function restoreSetup() {
       problems.push('this browser will not give up its stored setup');
     }
   }
-  if (!bytes) return;
+  if (!bytes) return false;
   const { obj, error } = decode(bytes);
   if (error) {
     setupLine(`the setup from ${source} could not be read (${error})`, 'warn');
     status(`Setup from ${source} unreadable: ${error}`, 'warn');
-    return;
+    return false;
   }
   const { setup, problems: found } = readSetup(obj);
   problems.push(...found);
   if (!setup) {
     setupLine(`the setup from ${source} is not this page's format; nothing restored`, 'warn');
-    return;
+    return false;
   }
   applySetup(setup, problems);
   lastSavedBytes = bytes;
@@ -2504,6 +2505,7 @@ function restoreSetup() {
   const note = problems.length ? ` — ${problems.length} value(s) fixed up, see below` : '';
   setupLine(`setup restored from ${source}${note}`, problems.length ? 'warn' : 'ok');
   if (problems.length) status(`Restored from ${source} with ${problems.length} fix(es): ${problems.join(' · ')}`, 'warn');
+  return true;
 }
 
 // Scouting CSV in, cards out. The file is read locally and never leaves the page; what comes back is a
@@ -2556,11 +2558,11 @@ async function copySetupLink() {
   }
 }
 
-function boot() {
+async function boot() {
   state.speed = Number($('sel-speed').value);
   // Before the first render: a restored card has to be the card the calibration and the first run see,
   // not a repaint after the page has already answered a question with the shipped rosters.
-  restoreSetup();
+  const restored = restoreSetup();
   renderRoster('red');
   renderRoster('blue');
   renderTeams();
@@ -2629,7 +2631,7 @@ function boot() {
   renderBench({ rows: [] });
   view.drawFrame(null, null);
 
-  $('btn-run').addEventListener('click', runSingle);
+  $('btn-run').addEventListener('click', () => void runSingle());
   $('btn-mc').addEventListener('click', runMonteCarlo);
   $('btn-replay-match').addEventListener('click', () => {
     const last = state.batchRows?.length || 1;
@@ -2797,7 +2799,15 @@ function boot() {
   }
   document.querySelector('.tab[data-tab="insight"]').click();
   requestAnimationFrame(relayout);
-  calibrate();
+  await calibrate();
+  // A first visit with nothing saved gets one match played for it. The shipped rosters are already on the
+  // cards, and a page that waits to be configured is a page most visitors leave before pressing anything.
+  // A restored setup or a link is the visitor saying which question they have, so neither is overwritten.
+  const fromLink = String(location.hash || '').startsWith(HASH_PREFIX);
+  if (!restored && !fromLink) {
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    void runSingle({ demo: true, autoplay: !reduce });
+  }
 }
 
 function redrawInsightCharts() {
