@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-labelledby="t">
+  <title id="t">2027 season, game to be announced</title>
+  <path d="M32 4 L56 18 V46 L32 60 L8 46 V18 Z" fill="#171a1e" stroke="#8b9bb4" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M25 24 C25 17 32 13 38 17 C44 21 43 29 36 32 C33 33 32 35 32 39" fill="none" stroke="#8b9bb4" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="32" cy="47" r="2.6" fill="#8b9bb4"/>
+</svg>

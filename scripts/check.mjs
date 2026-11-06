@@ -1,15 +1,16 @@
-// Static guard for the hub page. No dependencies. The page is a signpost with two entries, so the
-// guard checks three things: the file is intact, the links point at season folders that exist, and
-// nothing has crept back onto it that would need calibrating against the source repos.
+// Static guard for the hub page. No dependencies. The page is a signpost with one entry per
+// season, so the guard checks three things: the file is intact, the links point at season
+// folders that exist, and nothing has crept back onto it that would need calibrating against
+// the source repos.
 // Run: npm run check        (SKIP_NET=1 npm run check to skip the production reachability probe)
 import { readFile } from 'node:fs/promises';
 import { strict as assert } from 'node:assert';
 
 const FILES = ['index.html', '404.html'];
-// The two season consoles, built into this same site by scripts/build-site.mjs. A typo here is a
+// The season consoles, built into this same site by scripts/build-site.mjs. A typo here is a
 // dead entry, and so is a season whose web/ folder the build would copy nowhere.
-const LIVE = ['/rebuilt/', '/reefscape/'];
-const SEASON_WEB = ['rebuilt/web/index.html', 'reefscape/web/index.html'];
+const LIVE = ['/rebuilt/', '/reefscape/', '/2027/'];
+const SEASON_WEB = ['rebuilt/web/index.html', 'reefscape/web/index.html', '2027/web/index.html'];
 
 let failed = 0;
 async function check(name, fn) {
@@ -63,9 +64,9 @@ for (const [f, html] of Object.entries(src)) {
   });
 }
 
-await check('index.html: both season entry points are present', () => {
+await check('index.html: every season entry point is present', () => {
   for (const url of LIVE) assert.ok(src['index.html'].includes(url), `missing ${url}`);
-  assert.equal((src['index.html'].match(/class="go\b/g) || []).length, 2, 'expected 2 entry buttons');
+  assert.equal((src['index.html'].match(/class="go\b/g) || []).length, LIVE.length, `expected ${LIVE.length} entry buttons`);
 });
 
 await check('index.html: the page stays a signpost', () => {

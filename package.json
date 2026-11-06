@@ -3,12 +3,12 @@
   "private": true,
   "version": "0.2.0",
   "type": "module",
-  "description": "One Cloudflare Pages site for both XploreSim FRC match simulators: the 2026 REBUILT console at /rebuilt/ and the 2025 REEFSCAPE console at /reefscape/, bound to xploresim.salmoncat0304.xyz",
+  "description": "One Cloudflare Pages site for the XploreSim FRC match simulators: the 2026 REBUILT console at /rebuilt/, the 2025 REEFSCAPE console at /reefscape/ and the 2027 season console at /2027/, bound to xploresim.salmoncat0304.xyz",
   "scripts": {
     "build": "node scripts/build-site.mjs",
     "check": "node scripts/check.mjs && node scripts/check_style.mjs",
-    "check:apps": "npm --prefix rebuilt run check && npm --prefix reefscape run check",
-    "test": "npm --prefix rebuilt test && npm --prefix reefscape test",
+    "check:apps": "npm --prefix rebuilt run check && npm --prefix reefscape run check && npm --prefix 2027 run check",
+    "test": "npm --prefix rebuilt test && npm --prefix reefscape test && npm --prefix 2027 test",
     "validate": "npm run check && npm run check:apps && npm test && npm run build",
     "serve": "node scripts/serve.mjs"
   }

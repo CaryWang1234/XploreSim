@@ -8,10 +8,11 @@ import { fileURLToPath } from 'node:url';
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const DIST = join(ROOT, 'dist');
 
-const PAGE_FILES = ['index.html', '404.html', 'icon.svg', 'rebuilt-piece.svg', 'reefscape-piece.svg', '_headers'];
+const PAGE_FILES = ['index.html', '404.html', 'icon.svg', 'rebuilt-piece.svg', 'reefscape-piece.svg', '2027-piece.svg', '_headers'];
 const SEASONS = [
   { dir: 'rebuilt', from: 'rebuilt/web' },
   { dir: 'reefscape', from: 'reefscape/web' },
+  { dir: '2027', from: '2027/web' },
 ];
 
 // Cloudflare Web Analytics for the zone's RUM site. The token is public by design — it ships in the

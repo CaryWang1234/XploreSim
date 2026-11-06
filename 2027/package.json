@@ -1,0 +1,16 @@
+{
+  "name": "xplore-sim-2027",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "2027 FRC season console: the deployed placeholder, the game pack contract and the kickoff runbook. The game itself lands in web/js/game.js when the manual is published.",
+  "scripts": {
+    "check": "node scripts/check_web.mjs",
+    "test": "node --test scripts/runtime.test.mjs",
+    "validate": "npm run check && npm test",
+    "serve": "node scripts/serve.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

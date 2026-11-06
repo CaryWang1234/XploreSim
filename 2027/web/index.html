@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>XploreSim 2027 - season console</title>
+    <meta
+      name="description"
+      content="The XploreSim 2027 season console. The site, the build and the game pack contract are wired before kickoff; the manual constants land in one file when the game is published."
+    />
+    <meta name="theme-color" content="#0c0d0f" />
+    <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="bar">
+      <a class="brand" href="/">
+        <img src="./icon.svg" alt="" width="28" height="28" />
+        <span>XploreSim <b>2027</b></span>
+      </a>
+      <div class="bar-right">
+        <span class="chip" id="chip-status" data-state="tba">Awaiting kickoff</span>
+        <a class="btn ghost" href="/rebuilt/">2026</a>
+        <a class="btn ghost" href="/reefscape/">2025</a>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="kicker">2027 season</p>
+          <h1 id="season-name">TBA</h1>
+          <p class="edition" id="season-edition">2027 FIRST Robotics Competition</p>
+          <p class="manual" id="manual-line">2027 Game Manual - not published</p>
+
+          <div class="banner" id="status-banner" data-state="tba">
+            <strong id="banner-title">The 2027 game is not published yet.</strong>
+            <span id="banner-copy">
+              This console is already built and deployed. At kickoff, fill web/js/game.js first:
+              the identity, phases, scoring and ranking points on this page update without touching
+              the shell.
+            </span>
+          </div>
+
+          <p class="pack-state">
+            <span id="placeholder-count">Scaffolding values remain.</span>
+            <span id="field-line">Field: not measured yet.</span>
+          </p>
+
+          <div class="errors" id="contract-errors" hidden>
+            <strong>The game pack does not satisfy its contract.</strong>
+            <ul id="contract-error-list"></ul>
+          </div>
+
+          <div class="links">
+            <a class="btn" href="/rebuilt/">2026 REBUILT</a>
+            <a class="btn" href="/reefscape/">2025 REEFSCAPE</a>
+          </div>
+        </div>
+
+        <div class="hero-mark" aria-hidden="true">
+          <img class="piece" src="./piece.svg" alt="" width="132" height="132" />
+        </div>
+      </section>
+
+      <div class="grid">
+        <section class="panel">
+          <h2>Game pack</h2>
+          <p class="hint">
+            Everything below is read from web/js/game.js. A row marked PLACEHOLDER is scaffolding,
+            and the contract refuses a live pack while any remain.
+          </p>
+
+          <h3>Phases</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Phase</th><th>Kind</th><th>Length</th><th>Window</th><th></th></tr>
+              </thead>
+              <tbody id="phase-table"></tbody>
+            </table>
+          </div>
+
+          <h3>Scoring actions</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Action</th><th>Points by phase kind</th><th></th></tr>
+              </thead>
+              <tbody id="action-table"></tbody>
+            </table>
+          </div>
+
+          <h3>Ranking points</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Result</th><th>RP</th><th></th></tr>
+              </thead>
+              <tbody id="rp-table"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Rule sources</h2>
+          <p class="hint">
+            Each row is a clause the engine will implement, kept next to the function that carries it.
+            The audit trail is the product; a pack with no clauses cannot go live.
+          </p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Clause</th><th>Rule</th><th>Engine</th></tr>
+              </thead>
+              <tbody id="rules-table"></tbody>
+            </table>
+          </div>
+          <p class="empty" id="rules-empty">No clauses transcribed yet.</p>
+        </section>
+
+        <section class="panel">
+          <h2>Kickoff order</h2>
+          <p class="hint">Fill the pack in this order; each step has a visible result on the page.</p>
+          <ol class="order">
+            <li><code>web/js/game.js</code><span>Identity, labels, phases, points, RP. Flip status to draft.</span></li>
+            <li><code>web/js/rules.js</code><span>Manual constants with the clause beside each block.</span></li>
+            <li><code>web/js/model.js</code><span>Field geometry, starts, robot profiles, scenario defaults.</span></li>
+            <li><code>web/js/engine.js</code><span>The tick: pickup, scoring, phases, fouls, endgame.</span></li>
+            <li><code>web/js/viz.js</code><span>The field drawing, driven by the measured geometry.</span></li>
+            <li><code>web/js/policy.js</code><span>Plan search and baselines, then the A/B harnesses.</span></li>
+          </ol>
+          <p class="hint">The full runbook is 2027/docs/KICKOFF.md in the repository.</p>
+        </section>
+
+        <section class="panel">
+          <h2>Already wired</h2>
+          <p class="hint">These are the parts that do not change with the game.</p>
+          <ul class="wired">
+            <li><b>Build and deploy</b><span>dist/2027 is assembled by the same script as the older seasons.</span></li>
+            <li><b>Static guards</b><span>Encoding, tag balance, module parse and the pack contract run before a push.</span></li>
+            <li><b>Pack contract</b><span>Phase sum, unique keys, scoring kinds and a no-placeholder rule for live.</span></li>
+            <li><b>Season seam</b><span>Accent, nouns, phases and point tables come from one file.</span></li>
+          </ul>
+        </section>
+      </div>
+    </main>
+
+    <footer>
+      <span>XploreSim 2027 season console. The game pack is the source; this page is a view of it.</span>
+      <span>Placeholder values are scaffolding, not rules. Do not quote them as measurements.</span>
+    </footer>
+
+    <script type="module" src="./js/ui.js"></script>
+  </body>
+</html>
