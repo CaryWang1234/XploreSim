@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.2.0",
   "type": "module",
-  "description": "One Cloudflare Pages site for the XploreSim FRC match simulators: the 2026 REBUILT console at /rebuilt/, the 2025 REEFSCAPE console at /reefscape/ and the 2027 season console at /2027/, bound to xploresim.salmoncat0304.xyz",
+  "description": "One Cloudflare Pages site for the XploreSim FRC match simulators: the 2026 REBUILT console at /rebuilt/, the 2025 REEFSCAPE console at /reefscape/ and the 2027 BIOCORE console at /2027/, bound to xploresim.salmoncat0304.xyz",
   "scripts": {
     "build": "node scripts/build-site.mjs",
     "check": "node scripts/check.mjs && node scripts/check_style.mjs",

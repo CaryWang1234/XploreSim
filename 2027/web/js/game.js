@@ -8,7 +8,7 @@
 export const GAME = {
   status: 'tba', // 'tba' until the manual exists, 'draft' while transcribing, 'live' when shipped
   season: 2027,
-  name: 'TBA',
+  name: 'BIOCORE',
   edition: '2027 FIRST Robotics Competition',
   manual: {
     title: '2027 Game Manual',
@@ -18,8 +18,8 @@ export const GAME = {
 
   // The shell takes its accent from here, so the season colour is a pack value, not CSS.
   theme: {
-    accent: '#8b9bb4',
-    accentDim: '#3a414b',
+    accent: '#7fae5a',
+    accentDim: '#3d5230',
   },
 
   // Nouns the shell prints. Change these instead of editing the page copy.

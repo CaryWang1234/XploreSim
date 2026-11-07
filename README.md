@@ -7,7 +7,7 @@ One site with four entry points, hosted on Cloudflare Pages at `xploresim.salmon
 | `/` | Hub: the way in to every season |
 | `/rebuilt/` | 2026 REBUILT console |
 | `/reefscape/` | 2025 REEFSCAPE console |
-| `/2027/` | 2027 season console: deployed before kickoff, waiting on its game pack |
+| `/2027/` | 2027 BIOCORE console: deployed before the manual, waiting on its game pack |
 
 ## Layout
 
@@ -77,14 +77,14 @@ hub.
 
 The page copy is English only, and a CJK guard inside `npm run check` watches that. The whole
 backdrop is CSS: the perspective grid along the bottom is the field carpet, and the glows in the
-top corners take the season colours (2026 sand `#c9a45c`, 2025 teal `#5ccfd0`, 2027 steel
-`#8b9bb4`). Those are the only accents on the page, and every animation is off under
+top corners take the season colours (2026 sand `#c9a45c`, 2025 teal `#5ccfd0`, 2027 grass
+`#7fae5a`). Those are the only accents on the page, and every animation is off under
 `prefers-reduced-motion`.
 
 ## 2027 is a pack, not another fork
 
-`2027/` ships the console shell before the game exists. The page, the build and the deploy are
-already live; the season itself is one file, [`2027/web/js/game.js`](2027/web/js/game.js), and a
+`2027/` ships the BIOCORE console shell before the game exists. The page, the build and the deploy
+are already live; the season itself is one file, [`2027/web/js/game.js`](2027/web/js/game.js), and a
 contract that refuses to call it live while scaffolding values remain. `npm --prefix 2027 run
 check` validates the pack, and `npm --prefix 2027 test` attacks the validator. The same validator
 renders the page, so a pack cannot look ready in one place and be broken in the other.

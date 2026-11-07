@@ -1,7 +1,10 @@
 # 2027 开题运行手册
 
 目标：开题后 72 小时内上线一个可玩、可回放、可部署的 2027 控制台。最迟 T+2 小时，`/2027/`
-已经是 2027 的身份和规则页，而不是 TBA 占位页。
+已经是 2027 的身份和规则页，而不是一张空占位页。
+
+当前占位名是 **BIOCORE**，赛季色是草绿 `#7fae5a`。名字只写在 `2027/web/js/game.js`，hub 的
+入口色只写在根 `index.html` 的 `--biocore`；官方拼写或配色不同时，改这两处。
 
 现在站上已经有的东西：`/2027/` 占位页、构建与部署链路、hub 第三入口、game pack 契约、静态守卫和
 契约测试。开题当天不需要再搭站，只需要填缝。
@@ -74,11 +77,11 @@ import，断了就报错。
 
 ### T+0 到 T+1h：身份
 
-1. 填 `game.js`：`name`、`edition`、`manual`、`theme`、`labels`。
+1. 填 `game.js`：`name`（已填 BIOCORE）、`edition`、`manual`、`theme`、`labels`。
 2. 填 `phases`：先按手册的 MATCH 结构写，秒数从 `TIME` 抄。
 3. 填 `actions` 和 `rp`：只写有分数的行；没有分数的机制不要造一行。
 4. `status` 改成 `draft`。
-5. 跑 `npm --prefix 2027 run check`，页面上的 TBA 标题和阶段表应立即变成 2027 的内容。
+5. 跑 `npm --prefix 2027 run check`，页面上的 BIOCORE 标题和阶段表应立即变成手册的内容。
 
 Gate：契约通过，占位计数下降；页面顶部不再写 “not published yet”。
 

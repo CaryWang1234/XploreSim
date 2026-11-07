@@ -11,8 +11,8 @@ const isNumber = (value) => typeof value === 'number' && Number.isFinite(value);
 const STATUS_COPY = {
   tba: {
     chip: 'Awaiting kickoff',
-    title: 'The 2027 game is not published yet.',
-    copy: 'This console is already built and deployed. At kickoff, fill web/js/game.js first: the identity, phases, scoring and ranking points on this page update without touching the shell.',
+    title: 'BIOCORE is named. The manual is not published yet.',
+    copy: 'The name and the season colour are set. The manual is not. At kickoff, fill web/js/game.js first: the phases, scoring and ranking points on this page update without touching the shell.',
   },
   draft: {
     chip: 'Draft pack',

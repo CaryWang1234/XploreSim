@@ -1,6 +1,6 @@
-# XploreSim 2027
+# XploreSim 2027 - BIOCORE
 
-The 2027 season console, deployed before the game exists. The site, the build, the guards and the
+The BIOCORE console, deployed before the game exists. The site, the build, the guards and the
 deploy path are wired; the season itself lands in one file when the manual is published.
 
 ```
@@ -25,10 +25,12 @@ docs/KICKOFF.md           the hour-by-hour runbook, in Chinese
 
 ## The TBA state is deliberate
 
-`game.js` ships with `status: 'tba'` and eight `placeholder: true` values. The page says the game is
-unpublished, marks every scaffold row, and the contract refuses `status: 'live'` while any
+`game.js` ships with `status: 'tba'` and eight `placeholder: true` values. The page says the manual
+is unpublished, marks every scaffold row, and the contract refuses `status: 'live'` while any
 placeholder remains. The placeholder is not a fake game: it is the shape of the answer, waiting for
-the manual.
+the manual. The name BIOCORE and the grass accent are already set; if the official spelling or
+colour differs, `game.js` is the only place the name lives, and `--biocore` on the hub is the only
+place the hub accent lives.
 
 At kickoff, fill `game.js` first. The identity, phase table, scoring table and RP table update
 without touching the shell. Then fill `rules.js`, `model.js`, `engine.js`, `viz.js` and `policy.js`
